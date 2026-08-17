@@ -10,7 +10,7 @@ export async function GET() {
     requireRole(session, "admin");
     const { data, error } = await db()
       .from("shop")
-      .select("id, code, name, city, is_active, opened_on")
+      .select("id, code, name, city, address, is_active, opened_on")
       .order("name");
     if (error) throw error;
     return { shops: data };

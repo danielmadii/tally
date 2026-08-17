@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { ArrowLeft, TriangleAlert } from "lucide-react";
+import { ArrowLeft, Pencil, TriangleAlert } from "lucide-react";
 import { requireSession } from "@/lib/server/session";
 import { getShopDetail } from "@/lib/server/queries";
 import { fmtMoney, fmtInt } from "@/lib/format";
@@ -49,6 +49,12 @@ export default async function ShopDetailPage({
             {shop.city ?? "—"} · <span className="font-mono">{shop.code}</span>
           </p>
         </div>
+        {session.role === "admin" && (
+          <Link href="/manager/admin?tab=shops" className="btn btn-secondary">
+            <Pencil className="h-4 w-4" />
+            Edit shop
+          </Link>
+        )}
       </div>
 
       <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-3">

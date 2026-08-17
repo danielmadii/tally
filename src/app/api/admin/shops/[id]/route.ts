@@ -8,6 +8,7 @@ const Body = z.object({
   isActive: z.boolean().optional(),
   name: z.string().min(2).max(100).optional(),
   city: z.string().max(100).optional(),
+  address: z.string().max(200).optional(),
 });
 
 export async function PATCH(req: NextRequest, ctx: { params: Promise<{ id: string }> }) {
@@ -30,6 +31,7 @@ export async function PATCH(req: NextRequest, ctx: { params: Promise<{ id: strin
     if (body.isActive !== undefined) updates.is_active = body.isActive;
     if (body.name !== undefined) updates.name = body.name.trim();
     if (body.city !== undefined) updates.city = body.city.trim() || null;
+    if (body.address !== undefined) updates.address = body.address.trim() || null;
     if (Object.keys(updates).length) {
       const { error: updateError } = await db().from("shop").update(updates).eq("id", id);
       if (updateError) throw updateError;
