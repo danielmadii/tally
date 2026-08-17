@@ -58,7 +58,12 @@ export default function CatalogueScreen({
   const [variants, setVariants] = useState<NewVariant[]>([emptyVariant()]);
   const [viewingBarcode, setViewingBarcode] = useState<{ value: string; name: string } | null>(null);
   const [page, setPage] = useState(0);
-  const PAGE_SIZE = 40;
+  const [pageSize, setPageSize] = useState(40);
+  const [brandFilter, setBrandFilter] = useState("");
+  const [stockFilter, setStockFilter] = useState<"all" | "in" | "out">("all");
+  const [sort, setSort] = useState<"sku" | "price-desc" | "price-asc" | "stock-desc" | "stock-asc">(
+    "sku"
+  );
 
   const { data, isLoading } = useQuery({
     queryKey: ["admin-catalogue", shopId],
@@ -72,17 +77,49 @@ export default function CatalogueScreen({
     },
   });
 
-  const rows = useMemo(() => {
-    const all = data?.variants ?? [];
-    const q = filter.trim().toLowerCase();
-    if (!q) return all;
-    return all.filter((v) =>
-      [v.name, v.brand, v.category, v.sku, ...v.barcodes].join(" ").toLowerCase().includes(q)
-    );
-  }, [data, filter]);
+  // Brands actually carried by this shop — no empty options.
+  const shopBrands = useMemo(
+    () => [...new Set((data?.variants ?? []).map((v) => v.brand).filter(Boolean))].sort(),
+    [data]
+  );
 
-  const pageCount = Math.max(1, Math.ceil(rows.length / PAGE_SIZE));
-  const pageRows = rows.slice(page * PAGE_SIZE, page * PAGE_SIZE + PAGE_SIZE);
+  const rows = useMemo(() => {
+    let list = data?.variants ?? [];
+    const q = filter.trim().toLowerCase();
+    if (q) {
+      list = list.filter((v) =>
+        [v.name, v.brand, v.category, v.sku, ...v.barcodes].join(" ").toLowerCase().includes(q)
+      );
+    }
+    if (brandFilter) list = list.filter((v) => v.brand === brandFilter);
+    if (stockFilter !== "all") {
+      list = list.filter((v) =>
+        stockFilter === "in" ? (v.qtyOnHand ?? 0) > 0 : (v.qtyOnHand ?? 0) === 0
+      );
+    }
+
+    const sorted = [...list];
+    switch (sort) {
+      case "price-desc":
+        sorted.sort((a, b) => b.price - a.price);
+        break;
+      case "price-asc":
+        sorted.sort((a, b) => a.price - b.price);
+        break;
+      case "stock-desc":
+        sorted.sort((a, b) => (b.qtyOnHand ?? 0) - (a.qtyOnHand ?? 0));
+        break;
+      case "stock-asc":
+        sorted.sort((a, b) => (a.qtyOnHand ?? 0) - (b.qtyOnHand ?? 0));
+        break;
+      default:
+        sorted.sort((a, b) => a.sku.localeCompare(b.sku));
+    }
+    return sorted;
+  }, [data, filter, brandFilter, stockFilter, sort]);
+
+  const pageCount = Math.max(1, Math.ceil(rows.length / pageSize));
+  const pageRows = rows.slice(page * pageSize, page * pageSize + pageSize);
 
   async function createProduct(e: React.FormEvent) {
     e.preventDefault();
@@ -148,6 +185,83 @@ export default function CatalogueScreen({
           {showAdd ? "Cancel" : "+ Add product"}
         </button>
         <ImportPanel lockedShopId={shopId} lockedShopName={shopName} />
+      </div>
+
+      <div className="mt-3 flex flex-wrap items-center gap-3">
+        <label className="flex items-center gap-2 text-sm text-slate-500">
+          Brand
+          <select
+            value={brandFilter}
+            onChange={(e) => {
+              setBrandFilter(e.target.value);
+              setPage(0);
+            }}
+            className="input w-auto py-1.5"
+          >
+            <option value="">All brands</option>
+            {shopBrands.map((b) => (
+              <option key={b} value={b}>
+                {b}
+              </option>
+            ))}
+          </select>
+        </label>
+
+        <label className="flex items-center gap-2 text-sm text-slate-500">
+          Stock
+          <select
+            value={stockFilter}
+            onChange={(e) => {
+              setStockFilter(e.target.value as "all" | "in" | "out");
+              setPage(0);
+            }}
+            className="input w-auto py-1.5"
+          >
+            <option value="all">All items</option>
+            <option value="in">In stock</option>
+            <option value="out">Out of stock</option>
+          </select>
+        </label>
+
+        <label className="flex items-center gap-2 text-sm text-slate-500">
+          Sort
+          <select
+            value={sort}
+            onChange={(e) => {
+              setSort(e.target.value as typeof sort);
+              setPage(0);
+            }}
+            className="input w-auto py-1.5"
+          >
+            <option value="sku">Item code</option>
+            <option value="price-desc">Price — high to low</option>
+            <option value="price-asc">Price — low to high</option>
+            <option value="stock-desc">Stock — most first</option>
+            <option value="stock-asc">Stock — least first</option>
+          </select>
+        </label>
+
+        <label className="flex items-center gap-2 text-sm text-slate-500">
+          Show
+          <select
+            value={pageSize}
+            onChange={(e) => {
+              setPageSize(Number(e.target.value));
+              setPage(0);
+            }}
+            className="input w-auto py-1.5"
+          >
+            {[20, 40, 100, 200].map((n) => (
+              <option key={n} value={n}>
+                {n} per page
+              </option>
+            ))}
+          </select>
+        </label>
+
+        <span className="ml-auto text-sm text-slate-400">
+          {rows.length.toLocaleString()} item{rows.length === 1 ? "" : "s"}
+        </span>
       </div>
 
       {showAdd && (
@@ -332,11 +446,11 @@ export default function CatalogueScreen({
       </div>
       )}
 
-      {rows.length > PAGE_SIZE && (
+      {rows.length > pageSize && (
         <div className="mt-3 flex items-center justify-between text-sm text-slate-500">
           <span>
-            Showing {(page * PAGE_SIZE + 1).toLocaleString()}–
-            {Math.min((page + 1) * PAGE_SIZE, rows.length).toLocaleString()} of{" "}
+            Showing {(page * pageSize + 1).toLocaleString()}–
+            {Math.min((page + 1) * pageSize, rows.length).toLocaleString()} of{" "}
             {rows.length.toLocaleString()}
           </span>
           <div className="flex gap-2">
