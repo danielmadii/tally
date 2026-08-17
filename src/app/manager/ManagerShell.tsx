@@ -171,6 +171,8 @@ function NotificationBell() {
 function Sidebar({
   name,
   role,
+  brandTitle,
+  brandSubtitle,
   sections,
   pathname,
   collapsed,
@@ -179,6 +181,8 @@ function Sidebar({
 }: {
   name: string;
   role: string;
+  brandTitle: string;
+  brandSubtitle: string;
   sections: { section: string; items: NavItem[] }[];
   pathname: string;
   collapsed: boolean;
@@ -189,12 +193,12 @@ function Sidebar({
     <div className="flex h-full flex-col bg-slate-950 text-slate-400">
       <div className={`flex items-center gap-3 py-5 ${collapsed ? "justify-center px-2" : "px-5"}`}>
         <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary text-base font-bold text-white">
-          T
+          {brandTitle[0]?.toUpperCase()}
         </div>
         {!collapsed && (
-          <div>
-            <p className="text-sm font-semibold text-white">Tally</p>
-            <p className="text-[11px] text-slate-400">Sales &amp; Stock</p>
+          <div className="min-w-0">
+            <p className="truncate text-sm font-semibold text-white">{brandTitle}</p>
+            <p className="text-[11px] text-slate-400">{brandSubtitle}</p>
           </div>
         )}
         {onToggleCollapse && !collapsed && (
@@ -277,10 +281,12 @@ function Sidebar({
 export default function ManagerShell({
   name,
   role,
+  shopName,
   children,
 }: {
   name: string;
   role: string;
+  shopName?: string | null;
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
@@ -310,9 +316,18 @@ export default function ManagerShell({
     router.refresh();
   }
 
+  // Shop managers see their own shop as the workspace, not the chain brand.
+  const isShopManager = role === "supervisor" && !!shopName;
+  const brandTitle = isShopManager ? shopName! : "Tally";
+  const brandSubtitle = isShopManager ? "Powered by Tally" : "Sales & Stock";
+
   const sections = NAV.map((s) => ({
     ...s,
-    items: s.items.filter((i) => !i.adminOnly || role === "admin"),
+    items: s.items
+      .filter((i) => !i.adminOnly || role === "admin")
+      .map((i) =>
+        isShopManager && i.href === "/manager/shops" ? { ...i, label: "My shop" } : i
+      ),
   })).filter((s) => s.items.length > 0);
 
   return (
@@ -326,6 +341,8 @@ export default function ManagerShell({
         <Sidebar
           name={name}
           role={role}
+          brandTitle={brandTitle}
+          brandSubtitle={brandSubtitle}
           sections={sections}
           pathname={pathname}
           collapsed={collapsed}
@@ -345,6 +362,8 @@ export default function ManagerShell({
             <Sidebar
               name={name}
               role={role}
+              brandTitle={brandTitle}
+              brandSubtitle={brandSubtitle}
               sections={sections}
               pathname={pathname}
               collapsed={false}
@@ -365,7 +384,7 @@ export default function ManagerShell({
             >
               {drawerOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
             </button>
-            <p className="text-sm font-semibold">Tally</p>
+            <p className="text-sm font-semibold">{brandTitle}</p>
           </div>
           <div className="hidden lg:block" />
           <div className="flex items-center gap-2">

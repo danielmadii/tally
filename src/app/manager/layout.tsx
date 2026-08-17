@@ -8,7 +8,7 @@ export default async function ManagerLayout({ children }: { children: React.Reac
   if (!isManager(session.role)) redirect("/");
 
   return (
-    <ManagerShell name={session.name} role={session.role}>
+    <ManagerShell name={session.name} role={session.role} shopName={session.shopName}>
       {children}
     </ManagerShell>
   );

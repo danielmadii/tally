@@ -201,15 +201,19 @@ export async function getStock(shopId: string) {
 
 // ---------- manager dashboard ----------
 
-export async function getLiveDashboard() {
+export async function getLiveDashboard(shopId: string | null = null) {
   const today = businessDate();
+  let salesQuery = db()
+    .from("sale")
+    .select("shop_id, salesperson_id, sold_at, total, sale_line ( qty )")
+    .eq("business_date", today)
+    .eq("status", "completed");
+  if (shopId) salesQuery = salesQuery.eq("shop_id", shopId);
+  let shopsQuery = db().from("shop").select("id, code, name").eq("is_active", true).order("name");
+  if (shopId) shopsQuery = shopsQuery.eq("id", shopId);
   const [salesRes, shopsRes, usersRes] = await Promise.all([
-    db()
-      .from("sale")
-      .select("shop_id, salesperson_id, sold_at, total, sale_line ( qty )")
-      .eq("business_date", today)
-      .eq("status", "completed"),
-    db().from("shop").select("id, code, name").eq("is_active", true).order("name"),
+    salesQuery,
+    shopsQuery,
     db().from("app_user").select("id, full_name"),
   ]);
   for (const r of [salesRes, shopsRes, usersRes]) if (r.error) throw r.error;
@@ -260,7 +264,7 @@ export async function getLiveDashboard() {
   };
 }
 
-export async function getLeaderboard() {
+export async function getLeaderboard(shopId: string | null = null) {
   const mStart = monthStart();
   const today = businessDate();
   const [salesRes, usersRes, targetsRes, assignRes] = await Promise.all([
@@ -271,7 +275,7 @@ export async function getLeaderboard() {
       .eq("status", "completed"),
     db().from("app_user").select("id, full_name, role").eq("is_active", true),
     db().from("target").select("user_id, target_value").eq("period_month", mStart),
-    db().from("user_shop").select("user_id, shop:shop_id ( name )").is("end_date", null),
+    db().from("user_shop").select("user_id, shop_id, shop:shop_id ( name )").is("end_date", null),
   ]);
   for (const r of [salesRes, usersRes, targetsRes, assignRes]) if (r.error) throw r.error;
 
@@ -284,6 +288,14 @@ export async function getLeaderboard() {
   const shops = new Map(
     (assignRes.data ?? []).map((a: any) => [a.user_id, a.shop?.name ?? ""])
   );
+  // Shop scope: only salespeople assigned to that shop appear.
+  const scopedUserIds = shopId
+    ? new Set(
+        (assignRes.data ?? [])
+          .filter((a: any) => a.shop_id === shopId)
+          .map((a: any) => a.user_id)
+      )
+    : null;
 
   // Pro-rate target by elapsed days so mid-month attainment is meaningful.
   const day = Number(today.slice(8, 10));
@@ -291,7 +303,7 @@ export async function getLeaderboard() {
   const elapsedFraction = day / daysInMonth;
 
   const rows = (usersRes.data ?? [])
-    .filter((u: any) => u.role === "salesperson")
+    .filter((u: any) => u.role === "salesperson" && (!scopedUserIds || scopedUserIds.has(u.id)))
     .map((u: any) => {
       const mine = ((salesRes.data ?? []) as any[]).filter((s) => s.salesperson_id === u.id);
       const revenue = mine.reduce((s, r) => s + Number(r.total), 0);
@@ -573,9 +585,9 @@ export async function getVoidRequests(shopId: string | null) {
 }
 
 /** Exception report: voids this month plus every discounted sale, with who. */
-export async function getExceptions() {
+export async function getExceptions(shopId: string | null = null) {
   const mStart = monthStart();
-  const { data, error } = await db()
+  let query = db()
     .from("sale")
     .select(
       `id, sale_no, sold_at, total, discount_total, status, void_reason,
@@ -585,6 +597,8 @@ export async function getExceptions() {
     .or("status.eq.voided,discount_total.gt.0")
     .order("sold_at", { ascending: false })
     .limit(200);
+  if (shopId) query = query.eq("shop_id", shopId);
+  const { data, error } = await query;
   if (error) throw error;
 
   /* eslint-disable @typescript-eslint/no-explicit-any */

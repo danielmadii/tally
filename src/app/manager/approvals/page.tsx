@@ -10,7 +10,7 @@ export default async function ApprovalsPage() {
   const shopScope = session.role === "supervisor" ? session.shopId : null;
   const [requests, exceptions] = await Promise.all([
     getVoidRequests(shopScope),
-    getExceptions(),
+    getExceptions(shopScope),
   ]);
 
   return <ApprovalsScreen requests={requests} exceptions={exceptions} />;

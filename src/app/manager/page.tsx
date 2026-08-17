@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Download } from "lucide-react";
+import { requireSession } from "@/lib/server/session";
 import { getLiveDashboard, getLeaderboard } from "@/lib/server/queries";
 import { fmtMoney, fmtInt } from "@/lib/format";
 import HourlyChart from "./HourlyChart";
@@ -7,7 +8,14 @@ import HourlyChart from "./HourlyChart";
 export const dynamic = "force-dynamic";
 
 export default async function Dashboard() {
-  const [data, leaderboard] = await Promise.all([getLiveDashboard(), getLeaderboard()]);
+  // Shop managers are competitors — they see their own shop only.
+  const session = await requireSession();
+  const scope = session.role === "supervisor" ? session.shopId : null;
+
+  const [data, leaderboard] = await Promise.all([
+    getLiveDashboard(scope),
+    getLeaderboard(scope),
+  ]);
   const today = new Date().toLocaleDateString("en", {
     weekday: "long",
     day: "numeric",
@@ -19,7 +27,9 @@ export default async function Dashboard() {
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <div>
           <h1 className="page-title">Dashboard</h1>
-          <p className="page-desc">Chain-wide performance for today, {today}</p>
+          <p className="page-desc">
+            {scope ? `${session.shopName} — today, ${today}` : `Chain-wide performance for today, ${today}`}
+          </p>
         </div>
       </div>
 
@@ -48,7 +58,7 @@ export default async function Dashboard() {
 
       <div className="mt-6 grid gap-6 lg:grid-cols-2">
         <section>
-          <h2 className="section-label">Shops</h2>
+          <h2 className="section-label">{scope ? "Your shop" : "Shops"}</h2>
           <div className="mt-2 space-y-3">
             {data.perShop.map((shop) => (
               <Link
