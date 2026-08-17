@@ -22,12 +22,7 @@ export default async function ShopsPage() {
   return (
     <div>
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="page-title">Shops</h1>
-          <p className="page-desc">
-            Every shop with its own staff and its own stock — open one to drill in.
-          </p>
-        </div>
+        <h1 className="page-title">Shops</h1>
         {isAdmin && <AddShopButton />}
       </div>
 
@@ -47,20 +42,20 @@ export default async function ShopsPage() {
             />
 
             <div className="pointer-events-none relative">
-              <div className="flex items-start justify-between">
-                <div>
-                  <p className="text-sm font-semibold text-slate-900">
+              <div className="flex items-start justify-between gap-2">
+                <div className="min-w-0">
+                  <p className="truncate text-2xl font-bold tracking-tight text-primary">
                     {shop.name}
                     {!shop.isActive && <span className="badge badge-neutral ml-2">closed</span>}
                   </p>
-                  <p className="mt-0.5 text-xs text-slate-500">
+                  <p className="mt-1 text-xs text-slate-500">
                     {shop.city ?? "—"} · <span className="font-mono">{shop.code}</span>
                   </p>
                 </div>
-                <ChevronRight className="h-4 w-4 text-slate-300 transition-transform group-hover:translate-x-0.5" />
+                <ChevronRight className="mt-1.5 h-4 w-4 shrink-0 text-slate-300 transition-transform group-hover:translate-x-0.5" />
               </div>
 
-              <p className="mt-4 text-2xl font-semibold tabular-nums tracking-tight text-slate-900">
+              <p className="mt-4 text-xl font-semibold tabular-nums tracking-tight text-slate-900">
                 {fmtMoney(shop.revenueToday)}
               </p>
               <p className="text-xs text-slate-500">

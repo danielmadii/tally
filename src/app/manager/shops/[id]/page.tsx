@@ -42,7 +42,7 @@ export default async function ShopDetailPage({
 
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <div>
-          <h1 className="page-title">
+          <h1 className="text-2xl font-bold tracking-tight text-primary">
             {shop.name}
             {!shop.is_active && <span className="badge badge-neutral ml-2 align-middle">closed</span>}
           </h1>
