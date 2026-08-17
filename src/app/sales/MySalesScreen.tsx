@@ -4,16 +4,18 @@ import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { fmtMoney, fmtTime, fmtDate } from "@/lib/format";
 import type { MySale } from "@/lib/types";
+import { useT } from "@/lib/i18n/client";
 
 const VOID_REASONS = [
-  { value: "wrong_item", label: "Wrong item" },
-  { value: "wrong_quantity", label: "Wrong quantity" },
-  { value: "customer_changed_mind", label: "Customer changed mind" },
-  { value: "wrong_person", label: "Entered under wrong person" },
-  { value: "price_error", label: "Price error" },
+  { value: "wrong_item", key: "reasonWrongItem" },
+  { value: "wrong_quantity", key: "reasonWrongQuantity" },
+  { value: "customer_changed_mind", key: "reasonChangedMind" },
+  { value: "wrong_person", key: "reasonWrongPerson" },
+  { value: "price_error", key: "reasonPriceError" },
 ] as const;
 
 export default function MySalesScreen() {
+  const { t } = useT();
   const [period, setPeriod] = useState<"today" | "month">("today");
   const [expanded, setExpanded] = useState<string | null>(null);
   const [voiding, setVoiding] = useState<string | null>(null);
@@ -54,19 +56,19 @@ export default function MySalesScreen() {
               period === p ? "bg-white shadow-sm" : "text-slate-500"
             }`}
           >
-            {p === "today" ? "Today" : "This month"}
+            {p === "today" ? t("todayTab") : t("thisMonthTab")}
           </button>
         ))}
       </div>
 
       <div className="mt-4 flex items-baseline justify-between px-1">
-        <span className="text-sm text-slate-500">{sales.length} sales</span>
+        <span className="text-sm text-slate-500">{sales.length} {t("salesCount")}</span>
         <span className="text-lg font-bold tabular-nums">{fmtMoney(total)}</span>
       </div>
 
-      {isLoading && <p className="mt-8 text-center text-sm text-slate-400">Loading…</p>}
+      {isLoading && <p className="mt-8 text-center text-sm text-slate-400">{t("loading")}</p>}
       {!isLoading && sales.length === 0 && (
-        <p className="mt-8 text-center text-sm text-slate-400">No sales yet — go sell!</p>
+        <p className="mt-8 text-center text-sm text-slate-400">{t("noSalesYet")}</p>
       )}
 
       <ul className="mt-2 space-y-2">
@@ -76,7 +78,7 @@ export default function MySalesScreen() {
             <li key={sale.id} className="card">
               <button
                 onClick={() => setExpanded(open ? null : sale.id)}
-                className="flex w-full items-center justify-between px-4 py-3.5 text-left"
+                className="flex w-full items-center justify-between px-4 py-3.5 text-start"
               >
                 <div>
                   <p className="text-sm font-semibold">{sale.saleNo}</p>
@@ -84,13 +86,13 @@ export default function MySalesScreen() {
                     {period === "month" ? `${fmtDate(sale.soldAt)} · ` : ""}
                     {fmtTime(sale.soldAt)}
                     {sale.status !== "completed" && (
-                      <span className="ml-2 rounded bg-slate-100 px-1.5 py-0.5 font-medium uppercase text-slate-500">
+                      <span className="ms-2 rounded bg-slate-100 px-1.5 py-0.5 font-medium uppercase text-slate-500">
                         {sale.status}
                       </span>
                     )}
                     {sale.voidRequestedAt && sale.status === "completed" && (
-                      <span className="ml-2 rounded bg-amber-50 px-1.5 py-0.5 font-medium text-amber-700">
-                        void requested
+                      <span className="ms-2 rounded bg-amber-50 px-1.5 py-0.5 font-medium text-amber-700">
+                        {t("voidRequested")}
                       </span>
                     )}
                   </p>
@@ -115,7 +117,7 @@ export default function MySalesScreen() {
                       onClick={() => setVoiding(sale.id)}
                       className="mt-3 text-xs font-medium text-red-600"
                     >
-                      Request void
+                      {t("requestVoid")}
                     </button>
                   )}
                 </div>
@@ -131,10 +133,8 @@ export default function MySalesScreen() {
             className="safe-bottom rounded-t-3xl bg-white p-5"
             onClick={(e) => e.stopPropagation()}
           >
-            <h3 className="text-lg font-semibold">Why void this sale?</h3>
-            <p className="mt-1 text-xs text-slate-500">
-              Your supervisor will review and approve the void.
-            </p>
+            <h3 className="text-lg font-semibold">{t("whyVoid")}</h3>
+            <p className="mt-1 text-xs text-slate-500">{t("supervisorWillReview")}</p>
             <div className="mt-4 space-y-2">
               {VOID_REASONS.map((r) => (
                 <button
@@ -142,7 +142,7 @@ export default function MySalesScreen() {
                   onClick={() => requestVoid(voiding, r.value)}
                   className="w-full rounded-xl bg-slate-100 py-3.5 text-sm font-medium active:bg-slate-200"
                 >
-                  {r.label}
+                  {t(r.key)}
                 </button>
               ))}
             </div>

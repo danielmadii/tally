@@ -24,10 +24,22 @@ html {
   color-scheme: light;
 }
 
+/* Arabic UI: Cairo throughout, with a touch more line height for legibility. */
+html[lang="ar"] body {
+  font-family: var(--font-arabic), system-ui, sans-serif;
+  line-height: 1.7;
+}
+
+html[lang="ar"] .tabular-nums,
+html[lang="ar"] .font-mono {
+  font-family: var(--font-geist-mono), var(--font-arabic), monospace;
+}
+
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: var(--font-sans), system-ui, sans-serif;
+  /* Cairo also covers Arabic glyphs inside an otherwise English UI. */
+  font-family: var(--font-sans), var(--font-arabic), system-ui, sans-serif;
   -webkit-tap-highlight-color: transparent;
   overscroll-behavior-y: none;
   font-feature-settings: "cv11", "ss01";

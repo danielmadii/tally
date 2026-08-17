@@ -149,7 +149,7 @@ export default function EditUserButton({
         <Modal onClose={() => setOpen(false)}>
           <form
             onSubmit={save}
-            className="max-h-[90dvh] w-full max-w-md overflow-y-auto rounded-xl bg-white p-6 text-left shadow-2xl"
+            className="max-h-[90dvh] w-full max-w-md overflow-y-auto rounded-xl bg-white p-6 text-start shadow-2xl"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-start justify-between">

@@ -43,7 +43,7 @@ export default function AuditTab() {
       <div className="mt-3 overflow-x-auto card">
         <table className="w-full min-w-[640px] text-sm">
           <thead>
-            <tr className="bg-slate-50 border-b border-slate-200 text-left text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+            <tr className="bg-slate-50 border-b border-slate-200 text-start text-[11px] font-semibold uppercase tracking-wider text-slate-500">
               <th className="px-4 py-3">When</th>
               <th className="px-4 py-3">Who</th>
               <th className="px-4 py-3">Action</th>
@@ -61,7 +61,7 @@ export default function AuditTab() {
                   <span className="rounded bg-slate-100 px-1.5 py-0.5 text-xs font-medium">
                     {e.action}
                   </span>
-                  {e.entity && <span className="ml-1.5 text-xs text-slate-400">{e.entity}</span>}
+                  {e.entity && <span className="ms-1.5 text-xs text-slate-400">{e.entity}</span>}
                 </td>
                 <td className="px-4 py-3 text-xs text-slate-500">
                   {e.before && (

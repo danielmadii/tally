@@ -106,7 +106,7 @@ export default function EditProductButton({
         <Modal onClose={() => setOpen(false)}>
           <form
             onSubmit={save}
-            className="max-h-[90dvh] w-full max-w-md overflow-y-auto rounded-xl bg-white p-6 text-left shadow-2xl"
+            className="max-h-[90dvh] w-full max-w-md overflow-y-auto rounded-xl bg-white p-6 text-start shadow-2xl"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-start justify-between gap-4">
@@ -136,7 +136,7 @@ export default function EditProductButton({
                   inputMode="decimal"
                   value={form.price}
                   onChange={(e) => setForm({ ...form, price: e.target.value })}
-                  className="input text-right tabular-nums"
+                  className="input text-end tabular-nums"
                 />
               </label>
               <label className="block">
@@ -146,7 +146,7 @@ export default function EditProductButton({
                   value={form.costPrice}
                   onChange={(e) => setForm({ ...form, costPrice: e.target.value })}
                   placeholder="—"
-                  className="input text-right tabular-nums"
+                  className="input text-end tabular-nums"
                 />
               </label>
             </div>
@@ -160,7 +160,7 @@ export default function EditProductButton({
                 inputMode="numeric"
                 value={form.reorderPoint}
                 onChange={(e) => setForm({ ...form, reorderPoint: e.target.value })}
-                className="input text-right tabular-nums"
+                className="input text-end tabular-nums"
               />
             </label>
 

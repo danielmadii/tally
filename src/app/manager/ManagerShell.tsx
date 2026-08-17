@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
+import { useT, useSetLocale } from "@/lib/i18n/client";
+import type { TranslationKey } from "@/lib/i18n/dictionary";
 import {
   LayoutDashboard,
   Store,
@@ -22,34 +24,34 @@ import {
 
 interface NavItem {
   href: string;
-  label: string;
+  labelKey: TranslationKey;
   icon: React.ComponentType<{ className?: string }>;
   adminOnly?: boolean;
 }
 
-const NAV: { section: string; items: NavItem[] }[] = [
+const NAV: { sectionKey: TranslationKey; items: NavItem[] }[] = [
   {
-    section: "Overview",
-    items: [{ href: "/manager", label: "Dashboard", icon: LayoutDashboard }],
+    sectionKey: "overview",
+    items: [{ href: "/manager", labelKey: "dashboard", icon: LayoutDashboard }],
   },
   {
-    section: "Manage",
+    sectionKey: "manage",
     items: [
-      { href: "/manager/shops", label: "Shops", icon: Store },
-      { href: "/manager/products", label: "Products", icon: Package },
-      { href: "/manager/team", label: "Team", icon: UsersRound, adminOnly: true },
+      { href: "/manager/shops", labelKey: "shops", icon: Store },
+      { href: "/manager/products", labelKey: "products", icon: Package },
+      { href: "/manager/team", labelKey: "team", icon: UsersRound, adminOnly: true },
     ],
   },
   {
-    section: "Operations",
+    sectionKey: "operations",
     items: [
-      { href: "/manager/approvals", label: "Approvals", icon: ClipboardCheck },
-      { href: "/manager/reconcile", label: "Reconcile", icon: Calculator },
+      { href: "/manager/approvals", labelKey: "approvals", icon: ClipboardCheck },
+      { href: "/manager/reconcile", labelKey: "reconcile", icon: Calculator },
     ],
   },
   {
-    section: "System",
-    items: [{ href: "/manager/admin", label: "Settings", icon: Settings, adminOnly: true }],
+    sectionKey: "system",
+    items: [{ href: "/manager/admin", labelKey: "settings", icon: Settings, adminOnly: true }],
   },
 ];
 
@@ -73,12 +75,14 @@ function ProfileMenu({
   role: string;
   onLogout: () => void;
 }) {
+  const { t, locale } = useT();
+  const setLocale = useSetLocale();
   const [open, setOpen] = useState(false);
   return (
     <div className="relative">
       <button
         onClick={() => setOpen((v) => !v)}
-        aria-label="Account"
+        aria-label={t("account")}
         className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-xs font-semibold text-white hover:opacity-90"
       >
         {initials(name)}
@@ -87,10 +91,26 @@ function ProfileMenu({
       {open && (
         <>
           <div className="fixed inset-0 z-30" onClick={() => setOpen(false)} />
-          <div className="absolute right-0 top-11 z-40 w-56 rounded-lg border border-slate-200 bg-white p-2 shadow-lg">
+          <div className="absolute end-0 top-11 z-40 w-56 rounded-lg border border-slate-200 bg-white p-2 shadow-lg">
             <div className="px-3 py-2">
               <p className="text-sm font-semibold text-slate-900">{name}</p>
               <p className="text-xs capitalize text-slate-500">{role.replace("_", " ")}</p>
+            </div>
+            <div className="my-1 border-t border-slate-100" />
+            <div className="flex gap-1 px-2 py-1.5">
+              {(["en", "ar"] as const).map((l) => (
+                <button
+                  key={l}
+                  onClick={() => setLocale(l)}
+                  className={`flex-1 rounded-md py-1.5 text-xs font-medium ${
+                    locale === l
+                      ? "bg-slate-900 text-white"
+                      : "border border-slate-200 text-slate-600"
+                  }`}
+                >
+                  {l === "en" ? t("english") : t("arabic")}
+                </button>
+              ))}
             </div>
             <div className="my-1 border-t border-slate-100" />
             <button
@@ -98,7 +118,7 @@ function ProfileMenu({
               className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm text-slate-600 hover:bg-slate-50 hover:text-slate-900"
             >
               <LogOut className="h-4 w-4" />
-              Sign out
+              {t("signOut")}
             </button>
           </div>
         </>
@@ -108,6 +128,7 @@ function ProfileMenu({
 }
 
 function NotificationBell() {
+  const { t } = useT();
   const [open, setOpen] = useState(false);
   const { data } = useQuery({
     queryKey: ["notifications"],
@@ -124,12 +145,12 @@ function NotificationBell() {
     <div className="relative">
       <button
         onClick={() => setOpen((v) => !v)}
-        aria-label="Notifications"
+        aria-label={t("notifications")}
         className="relative rounded-md p-2 text-slate-500 hover:bg-slate-100 hover:text-slate-700"
       >
         <Bell className="h-[18px] w-[18px]" />
         {total > 0 && (
-          <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-bold text-white">
+          <span className="absolute -end-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-bold text-white">
             {total > 99 ? "99+" : total}
           </span>
         )}
@@ -138,9 +159,9 @@ function NotificationBell() {
       {open && (
         <>
           <div className="fixed inset-0 z-30" onClick={() => setOpen(false)} />
-          <div className="absolute right-0 top-11 z-40 w-72 rounded-lg border border-slate-200 bg-white p-2 shadow-lg">
+          <div className="absolute end-0 top-11 z-40 w-72 rounded-lg border border-slate-200 bg-white p-2 shadow-lg">
             {total === 0 && (
-              <p className="px-3 py-4 text-center text-sm text-slate-400">All clear — nothing needs you.</p>
+              <p className="px-3 py-4 text-center text-sm text-slate-400">{t("allClear")}</p>
             )}
             {(data?.voidRequests ?? 0) > 0 && (
               <Link
@@ -149,9 +170,10 @@ function NotificationBell() {
                 className="block rounded-md px-3 py-2.5 text-sm hover:bg-slate-50"
               >
                 <span className="font-semibold text-slate-900">
-                  {data!.voidRequests} void request{data!.voidRequests === 1 ? "" : "s"}
+                  {data!.voidRequests}{" "}
+                  {data!.voidRequests === 1 ? t("voidRequestPending") : t("voidRequestsPending")}
                 </span>{" "}
-                <span className="text-slate-500">awaiting approval</span>
+                <span className="text-slate-500">{t("awaitingApproval")}</span>
               </Link>
             )}
             {(data?.lowStock ?? 0) > 0 && (
@@ -161,9 +183,9 @@ function NotificationBell() {
                 className="block rounded-md px-3 py-2.5 text-sm hover:bg-slate-50"
               >
                 <span className="font-semibold text-slate-900">
-                  {data!.lowStock} item{data!.lowStock === 1 ? "" : "s"}
+                  {data!.lowStock} {data!.lowStock === 1 ? t("lowStockItem") : t("lowStockItems")}
                 </span>{" "}
-                <span className="text-slate-500">at or below reorder point</span>
+                <span className="text-slate-500">{t("atOrBelowReorder")}</span>
               </Link>
             )}
           </div>
@@ -188,12 +210,13 @@ function Sidebar({
   role: string;
   brandTitle: string;
   brandSubtitle: string;
-  sections: { section: string; items: NavItem[] }[];
+  sections: { sectionKey: TranslationKey; items: NavItem[] }[];
   pathname: string;
   collapsed: boolean;
   onNavigate: () => void;
   onToggleCollapse?: () => void;
 }) {
+  const { t } = useT();
   return (
     <div className="flex h-full flex-col bg-slate-950 text-slate-400">
       <div className={`flex items-center gap-3 py-5 ${collapsed ? "justify-center px-2" : "px-5"}`}>
@@ -209,9 +232,9 @@ function Sidebar({
         {onToggleCollapse && !collapsed && (
           <button
             onClick={onToggleCollapse}
-            title="Collapse menu"
-            aria-label="Collapse menu"
-            className="ml-auto rounded-md p-1.5 text-slate-500 hover:bg-white/5 hover:text-slate-200"
+            title={t("collapseMenu")}
+            aria-label={t("collapseMenu")}
+            className="ms-auto rounded-md p-1.5 text-slate-500 hover:bg-white/5 hover:text-slate-200"
           >
             <PanelLeftClose className="h-4 w-4" />
           </button>
@@ -220,8 +243,8 @@ function Sidebar({
       {onToggleCollapse && collapsed && (
         <button
           onClick={onToggleCollapse}
-          title="Expand menu"
-          aria-label="Expand menu"
+          title={t("expandMenu")}
+          aria-label={t("expandMenu")}
           className="mx-auto mb-2 rounded-md p-1.5 text-slate-500 hover:bg-white/5 hover:text-slate-200"
         >
           <PanelLeftOpen className="h-4 w-4" />
@@ -230,10 +253,10 @@ function Sidebar({
 
       <nav className={`flex-1 overflow-y-auto pb-4 ${collapsed ? "px-2" : "px-3"}`}>
         {sections.map((section) => (
-          <div key={section.section} className="mt-4 first:mt-1">
+          <div key={section.sectionKey} className="mt-4 first:mt-1">
             {!collapsed ? (
               <p className="px-2 pb-1.5 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
-                {section.section}
+                {t(section.sectionKey)}
               </p>
             ) : (
               <div className="mx-2 mb-1.5 border-t border-slate-800" />
@@ -250,7 +273,7 @@ function Sidebar({
                     <Link
                       href={item.href}
                       onClick={onNavigate}
-                      title={collapsed ? item.label : undefined}
+                      title={collapsed ? t(item.labelKey) : undefined}
                       className={`relative flex items-center gap-3 rounded-md py-2 text-[13px] font-medium transition-colors ${
                         collapsed ? "justify-center px-0" : "px-3"
                       } ${
@@ -260,10 +283,10 @@ function Sidebar({
                       }`}
                     >
                       {active && (
-                        <span className="absolute inset-y-1.5 left-0 w-0.5 rounded-full bg-primary" />
+                        <span className="absolute inset-y-1.5 start-0 w-0.5 rounded-full bg-primary" />
                       )}
                       <Icon className="h-4 w-4 shrink-0" />
-                      {!collapsed && item.label}
+                      {!collapsed && t(item.labelKey)}
                     </Link>
                   </li>
                 );
@@ -328,11 +351,7 @@ export default function ManagerShell({
 
   const sections = NAV.map((s) => ({
     ...s,
-    items: s.items
-      .filter((i) => !i.adminOnly || role === "admin")
-      .map((i) =>
-        isShopManager && i.href === "/manager/shops" ? { ...i, label: "My shop" } : i
-      ),
+    items: s.items.filter((i) => !i.adminOnly || role === "admin"),
   })).filter((s) => s.items.length > 0);
 
   return (
@@ -361,7 +380,7 @@ export default function ManagerShell({
         <div className="fixed inset-0 z-40 lg:hidden" onClick={() => setDrawerOpen(false)}>
           <div className="absolute inset-0 bg-black/50" />
           <div
-            className="absolute inset-y-0 left-0 w-72 shadow-2xl"
+            className="absolute inset-y-0 start-0 w-72 shadow-2xl"
             onClick={(e) => e.stopPropagation()}
           >
             <Sidebar

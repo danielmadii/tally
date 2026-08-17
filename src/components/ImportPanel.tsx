@@ -227,12 +227,12 @@ export default function ImportPanel({
           <div className="mt-3 overflow-x-auto rounded-md border border-slate-100">
             <table className="w-full min-w-[560px] text-xs">
               <thead>
-                <tr className="bg-slate-50 text-left text-[10px] font-semibold uppercase tracking-wider text-slate-500">
+                <tr className="bg-slate-50 text-start text-[10px] font-semibold uppercase tracking-wider text-slate-500">
                   <th className="px-3 py-2">Code</th>
                   <th className="px-3 py-2">Description</th>
                   <th className="px-3 py-2">Brand</th>
                   <th className="px-3 py-2">Barcode</th>
-                  <th className="px-3 py-2 text-right">Price</th>
+                  <th className="px-3 py-2 text-end">Price</th>
                 </tr>
               </thead>
               <tbody>
@@ -242,7 +242,7 @@ export default function ImportPanel({
                     <td className="px-3 py-2">{r.name}</td>
                     <td className="px-3 py-2 text-slate-500">{r.brand}</td>
                     <td className="px-3 py-2 font-mono text-slate-500">{r.barcode ?? "—"}</td>
-                    <td className="px-3 py-2 text-right tabular-nums">
+                    <td className="px-3 py-2 text-end tabular-nums">
                       {r.price?.toLocaleString() ?? "—"}
                     </td>
                   </tr>

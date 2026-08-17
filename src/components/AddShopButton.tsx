@@ -51,7 +51,7 @@ export default function AddShopButton() {
         <Modal onClose={() => setOpen(false)}>
           <form
             onSubmit={save}
-            className="w-full max-w-md rounded-xl bg-white p-6 text-left shadow-2xl"
+            className="w-full max-w-md rounded-xl bg-white p-6 text-start shadow-2xl"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-start justify-between">

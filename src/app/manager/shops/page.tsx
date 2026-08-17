@@ -47,7 +47,7 @@ export default async function ShopsPage() {
                 <div className="min-w-0">
                   <p className="truncate text-2xl font-bold tracking-tight text-primary">
                     {shop.name}
-                    {!shop.isActive && <span className="badge badge-neutral ml-2">closed</span>}
+                    {!shop.isActive && <span className="badge badge-neutral ms-2">closed</span>}
                   </p>
                   <p className="mt-1 text-xs text-slate-500">
                     {shop.city ?? "—"} · <span className="font-mono">{shop.code}</span>

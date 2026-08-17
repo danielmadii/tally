@@ -74,14 +74,14 @@ export default async function ProductsPage({
       <div className="card mt-4 overflow-x-auto">
         <table className="w-full min-w-[560px] text-sm">
           <thead>
-            <tr className="bg-slate-50 border-b border-slate-200 text-left text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+            <tr className="bg-slate-50 border-b border-slate-200 text-start text-[11px] font-semibold uppercase tracking-wider text-slate-500">
               <th className="px-4 py-3">#</th>
               <th className="px-4 py-3">Product</th>
               <th className="px-4 py-3">Brand</th>
               <th className="px-4 py-3">Category</th>
-              <th className="px-4 py-3 text-right">Units sold</th>
-              <th className="px-4 py-3 text-right">Revenue</th>
-              {shopId && <th className="px-4 py-3 text-right">On hand</th>}
+              <th className="px-4 py-3 text-end">Units sold</th>
+              <th className="px-4 py-3 text-end">Revenue</th>
+              {shopId && <th className="px-4 py-3 text-end">On hand</th>}
             </tr>
           </thead>
           <tbody>
@@ -94,10 +94,10 @@ export default async function ProductsPage({
                 </td>
                 <td className="px-4 py-3 text-slate-500">{r.brand}</td>
                 <td className="px-4 py-3 text-slate-500">{r.category}</td>
-                <td className="px-4 py-3 text-right tabular-nums">{fmtInt(r.units)}</td>
-                <td className="px-4 py-3 text-right font-semibold tabular-nums">{fmtMoney(r.revenue)}</td>
+                <td className="px-4 py-3 text-end tabular-nums">{fmtInt(r.units)}</td>
+                <td className="px-4 py-3 text-end font-semibold tabular-nums">{fmtMoney(r.revenue)}</td>
                 {shopId && (
-                  <td className="px-4 py-3 text-right">
+                  <td className="px-4 py-3 text-end">
                     <span
                       className={`inline-block min-w-10 rounded-md px-2 py-1 text-center font-semibold tabular-nums ${
                         (r.qtyOnHand ?? 0) <= 3
@@ -134,11 +134,11 @@ export default async function ProductsPage({
       <div className="card mt-3 overflow-x-auto">
         <table className="w-full min-w-[480px] text-sm">
           <thead>
-            <tr className="bg-slate-50 border-b border-slate-200 text-left text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+            <tr className="bg-slate-50 border-b border-slate-200 text-start text-[11px] font-semibold uppercase tracking-wider text-slate-500">
               <th className="px-4 py-3">Shop</th>
               <th className="px-4 py-3">Product</th>
               <th className="px-4 py-3">Brand</th>
-              <th className="px-4 py-3 text-right">On hand</th>
+              <th className="px-4 py-3 text-end">On hand</th>
             </tr>
           </thead>
           <tbody>
@@ -150,7 +150,7 @@ export default async function ProductsPage({
                   <p className="font-mono text-xs text-slate-400">{r.sku}</p>
                 </td>
                 <td className="px-4 py-3 text-slate-500">{r.brand}</td>
-                <td className="px-4 py-3 text-right font-semibold tabular-nums">{fmtInt(r.qtyOnHand)}</td>
+                <td className="px-4 py-3 text-end font-semibold tabular-nums">{fmtInt(r.qtyOnHand)}</td>
               </tr>
             ))}
             {deadStock.length === 0 && (

@@ -169,12 +169,12 @@ export default function TeamScreen() {
       <div className="card mt-4 overflow-x-auto">
         <table className="w-full min-w-[640px] text-sm">
           <thead>
-            <tr className="bg-slate-50 border-b border-slate-200 text-left text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+            <tr className="bg-slate-50 border-b border-slate-200 text-start text-[11px] font-semibold uppercase tracking-wider text-slate-500">
               <th className="px-4 py-3">Name</th>
               <th className="px-4 py-3">Phone</th>
               <th className="px-4 py-3">Role</th>
               <th className="px-4 py-3">Shop</th>
-              <th className="px-4 py-3 text-right">Actions</th>
+              <th className="px-4 py-3 text-end">Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -185,7 +185,7 @@ export default function TeamScreen() {
               >
                 <td className="px-4 py-3 font-medium">
                   {u.name}
-                  {!u.isActive && <span className="badge badge-neutral ml-2">inactive</span>}
+                  {!u.isActive && <span className="badge badge-neutral ms-2">inactive</span>}
                 </td>
                 <td className="px-4 py-3 font-mono text-xs text-slate-500">{u.phone}</td>
                 <td className="px-4 py-3 text-slate-600">{roleLabel(u.role)}</td>

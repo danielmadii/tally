@@ -112,14 +112,14 @@ export default async function Dashboard() {
         <div className="card mt-3 overflow-x-auto">
           <table className="w-full min-w-[560px] text-sm">
             <thead>
-              <tr className="bg-slate-50 border-b border-slate-200 text-left text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+              <tr className="bg-slate-50 border-b border-slate-200 text-start text-[11px] font-semibold uppercase tracking-wider text-slate-500">
                 <th className="px-4 py-3">#</th>
                 <th className="px-4 py-3">Salesperson</th>
                 <th className="px-4 py-3">Shop</th>
-                <th className="px-4 py-3 text-right">Revenue</th>
-                <th className="px-4 py-3 text-right">Units</th>
-                <th className="px-4 py-3 text-right">Sales</th>
-                <th className="px-4 py-3 text-right">Attainment</th>
+                <th className="px-4 py-3 text-end">Revenue</th>
+                <th className="px-4 py-3 text-end">Units</th>
+                <th className="px-4 py-3 text-end">Sales</th>
+                <th className="px-4 py-3 text-end">Attainment</th>
               </tr>
             </thead>
             <tbody>
@@ -128,11 +128,11 @@ export default async function Dashboard() {
                   <td className="px-4 py-3 font-semibold text-slate-400">{i + 1}</td>
                   <td className="px-4 py-3 font-medium">{r.name}</td>
                   <td className="px-4 py-3 text-slate-500">{r.shopName}</td>
-                  <td className="px-4 py-3 text-right font-semibold tabular-nums">
+                  <td className="px-4 py-3 text-end font-semibold tabular-nums">
                     {fmtMoney(r.revenue)}
                   </td>
-                  <td className="px-4 py-3 text-right tabular-nums">{fmtInt(r.units)}</td>
-                  <td className="px-4 py-3 text-right tabular-nums">{fmtInt(r.transactions)}</td>
+                  <td className="px-4 py-3 text-end tabular-nums">{fmtInt(r.units)}</td>
+                  <td className="px-4 py-3 text-end tabular-nums">{fmtInt(r.transactions)}</td>
                   <td className="px-4 py-3">
                     {r.attainmentPct !== null ? (
                       <div className="flex items-center justify-end gap-2">
@@ -144,12 +144,12 @@ export default async function Dashboard() {
                             style={{ width: `${Math.min(r.attainmentPct, 100)}%` }}
                           />
                         </div>
-                        <span className="w-12 text-right font-semibold tabular-nums">
+                        <span className="w-12 text-end font-semibold tabular-nums">
                           {r.attainmentPct}%
                         </span>
                       </div>
                     ) : (
-                      <span className="block text-right text-slate-400">no target</span>
+                      <span className="block text-end text-slate-400">no target</span>
                     )}
                   </td>
                 </tr>

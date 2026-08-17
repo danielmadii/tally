@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { CameraOff } from "lucide-react";
+import { useT } from "@/lib/i18n/client";
 
 interface Props {
   onDetected: (code: string) => void;
@@ -15,7 +16,8 @@ interface Props {
  * is ignored for 2s to avoid duplicate adds.
  */
 export default function Scanner({ onDetected, paused = false }: Props) {
-  const [cameraError, setCameraError] = useState<string | null>(null);
+  const { t } = useT();
+  const [cameraError, setCameraError] = useState<"blocked" | "failed" | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const lastHit = useRef<{ code: string; at: number }>({ code: "", at: 0 });
   const pausedRef = useRef(paused);
@@ -87,11 +89,7 @@ export default function Scanner({ onDetected, paused = false }: Props) {
         }
       } catch (err) {
         const name = err instanceof DOMException ? err.name : "";
-        setCameraError(
-          name === "NotAllowedError"
-            ? "Camera access is blocked. Allow it in your browser settings, or use Search instead."
-            : "The camera could not be started on this device. Use Search instead."
-        );
+        setCameraError(name === "NotAllowedError" ? "blocked" : "failed");
       }
     }
 
@@ -122,7 +120,9 @@ export default function Scanner({ onDetected, paused = false }: Props) {
       {cameraError && (
         <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-slate-900 px-8 text-center">
           <CameraOff className="h-8 w-8 text-slate-500" />
-          <p className="text-sm text-slate-300">{cameraError}</p>
+          <p className="text-sm text-slate-300">
+            {cameraError === "blocked" ? t("cameraBlocked") : t("cameraFailed")}
+          </p>
         </div>
       )}
     </div>

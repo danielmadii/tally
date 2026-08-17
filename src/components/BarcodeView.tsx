@@ -59,7 +59,7 @@ export default function BarcodeView({
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-start justify-between">
-          <p className="pr-4 text-left text-sm font-semibold text-slate-900">{name}</p>
+          <p className="pe-4 text-start text-sm font-semibold text-slate-900">{name}</p>
           <button onClick={onClose} aria-label="Close" className="p-1 text-slate-400 hover:text-slate-600">
             <X className="h-4 w-4" />
           </button>

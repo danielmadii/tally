@@ -8,6 +8,7 @@ import { findByBarcode, searchCatalogue, localDB } from "@/lib/client/db";
 import { useCatalogueSync, itemLabel } from "@/lib/client/catalogue";
 import { fmtMoney } from "@/lib/format";
 import type { BasketLine, CatalogueItem } from "@/lib/types";
+import { useT } from "@/lib/i18n/client";
 
 type Mode = "scan" | "search";
 
@@ -19,6 +20,7 @@ interface SaleResult {
 const RECENTS_KEY = "tally-recent-variants";
 
 export default function SellScreen({ sellerName }: { sellerName: string }) {
+  const { t } = useT();
   useCatalogueSync();
   const queryClient = useQueryClient();
 
@@ -64,14 +66,14 @@ export default function SellScreen({ sellerName }: { sellerName: string }) {
         }
         return [...prev, { item, qty: 1, discount: 0 }];
       });
-      showToast(`Added ${itemLabel(item)}`);
+      showToast(`${t("added")} ${itemLabel(item)}`);
       try {
         const recents: string[] = JSON.parse(localStorage.getItem(RECENTS_KEY) ?? "[]");
         const next = [item.variantId, ...recents.filter((id) => id !== item.variantId)].slice(0, 12);
         localStorage.setItem(RECENTS_KEY, JSON.stringify(next));
       } catch {}
     },
-    [showToast]
+    [showToast, t]
   );
 
   const onScan = useCallback(
@@ -82,10 +84,10 @@ export default function SellScreen({ sellerName }: { sellerName: string }) {
       } else {
         // Local miss → server fallback would go here; for now surface it so
         // the unknown barcode is visible rather than silently dropped.
-        showToast(`Unknown barcode ${code} — use search`);
+        showToast(`${t("unknownBarcode")} ${code} — ${t("useSearch")}`);
       }
     },
-    [addItem, showToast]
+    [addItem, showToast, t]
   );
 
   function setQty(variantId: string, qty: number) {
@@ -119,7 +121,7 @@ export default function SellScreen({ sellerName }: { sellerName: string }) {
       });
       const data = await res.json();
       if (!res.ok) {
-        setError(data.error ?? "Could not record the sale");
+        setError(data.error ?? t("couldNotRecord"));
         return;
       }
       setDone({ sale_no: data.sale_no, total: Number(data.total) });
@@ -130,7 +132,7 @@ export default function SellScreen({ sellerName }: { sellerName: string }) {
       queryClient.invalidateQueries({ queryKey: ["stock"] });
       if (navigator.vibrate) navigator.vibrate([50, 60, 50]);
     } catch {
-      setError("Network problem — the sale was NOT recorded. Try again.");
+      setError(t("saleNotRecorded"));
     } finally {
       setConfirming(false);
     }
@@ -153,7 +155,7 @@ export default function SellScreen({ sellerName }: { sellerName: string }) {
             }`}
           >
             {m === "scan" ? <Camera className="h-4 w-4" /> : <Search className="h-4 w-4" />}
-            {m === "scan" ? "Scan" : "Search"}
+            {m === "scan" ? t("scan") : t("search")}
           </button>
         ))}
       </div>
@@ -180,9 +182,9 @@ export default function SellScreen({ sellerName }: { sellerName: string }) {
         >
           <span className="flex items-center gap-2 text-sm font-medium">
             <ShoppingBasket className="h-5 w-5" />
-            {units} item{units === 1 ? "" : "s"}
+            {units} {units === 1 ? t("item") : t("items")}
           </span>
-          <span className="text-lg font-bold">{fmtMoney(total)} · Basket</span>
+          <span className="text-lg font-bold">{fmtMoney(total)} · {t("basket")}</span>
         </button>
       )}
 
@@ -194,7 +196,7 @@ export default function SellScreen({ sellerName }: { sellerName: string }) {
             onClick={(e) => e.stopPropagation()}
           >
             <div className="mx-auto mb-4 h-1.5 w-10 rounded-full bg-slate-300" />
-            <h2 className="text-lg font-semibold">Basket</h2>
+            <h2 className="text-lg font-semibold">{t("basket")}</h2>
 
             <ul className="mt-3 divide-y divide-slate-100">
               {basket.map((l) => {
@@ -206,8 +208,8 @@ export default function SellScreen({ sellerName }: { sellerName: string }) {
                       <p className="text-xs text-slate-500">
                         {fmtMoney(l.item.price)}
                         {onHand !== undefined && (
-                          <span className={onHand <= 3 ? "ml-2 text-amber-600" : "ml-2 text-slate-400"}>
-                            · {onHand} in stock
+                          <span className={onHand <= 3 ? "ms-2 text-amber-600" : "ms-2 text-slate-400"}>
+                            · {onHand} {t("inStock")}
                           </span>
                         )}
                       </p>
@@ -217,7 +219,7 @@ export default function SellScreen({ sellerName }: { sellerName: string }) {
                       <span className="w-8 text-center text-base font-semibold tabular-nums">{l.qty}</span>
                       <Stepper onClick={() => setQty(l.item.variantId, l.qty + 1)} label="+" />
                     </div>
-                    <span className="w-16 text-right text-sm font-semibold tabular-nums">
+                    <span className="w-16 text-end text-sm font-semibold tabular-nums">
                       {fmtMoney(l.qty * l.item.price - l.discount)}
                     </span>
                   </li>
@@ -226,7 +228,7 @@ export default function SellScreen({ sellerName }: { sellerName: string }) {
             </ul>
 
             <div className="mt-4 flex items-center justify-between border-t border-slate-200 pt-4">
-              <span className="text-sm text-slate-500">Total</span>
+              <span className="text-sm text-slate-500">{t("total")}</span>
               <span className="text-2xl font-bold tabular-nums">{fmtMoney(total)}</span>
             </div>
 
@@ -239,7 +241,7 @@ export default function SellScreen({ sellerName }: { sellerName: string }) {
               disabled={confirming || !basket.length}
               className="press mt-4 w-full rounded-2xl bg-primary py-4 text-xl font-bold text-white disabled:opacity-60"
             >
-              {confirming ? "Recording…" : `CONFIRM · ${fmtMoney(total)}`}
+              {confirming ? t("recording") : `${t("confirm")} · ${fmtMoney(total)}`}
             </button>
           </div>
         </div>
@@ -266,6 +268,7 @@ function SearchPanel({
   addItem: (item: CatalogueItem) => void;
   stockMap: Map<string, number>;
 }) {
+  const { t } = useT();
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<CatalogueItem[]>([]);
   const [recents, setRecents] = useState<CatalogueItem[]>([]);
@@ -304,18 +307,18 @@ function SearchPanel({
         autoFocus
         value={query}
         onChange={(e) => setQuery(e.target.value)}
-        placeholder="Name, brand, shade, SKU…"
+        placeholder={t("searchPlaceholder")}
         className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3.5 text-base outline-none focus:border-primary focus:ring-2 focus:ring-primary/15"
       />
 
       {showRecents && (
         <>
           <p className="mt-4 text-xs font-semibold uppercase tracking-wide text-slate-400">
-            Recently sold
+            {t("recentlySold")}
           </p>
           <ItemList items={recents} addItem={addItem} stockMap={stockMap} />
           <p className="mt-4 text-xs font-semibold uppercase tracking-wide text-slate-400">
-            All products
+            {t("allProducts")}
           </p>
         </>
       )}
@@ -324,7 +327,7 @@ function SearchPanel({
 
       {query.trim() && results.length === 0 && (
         <p className="mt-6 text-center text-sm text-slate-400">
-          Nothing found — check the spelling or ask your supervisor to add it.
+          {t("nothingFound")}
         </p>
       )}
     </div>
@@ -340,6 +343,7 @@ function ItemList({
   addItem: (item: CatalogueItem) => void;
   stockMap: Map<string, number>;
 }) {
+  const { t } = useT();
   return (
     <ul className="mt-2 divide-y divide-slate-100 card">
       {items.map((item) => {
@@ -348,7 +352,7 @@ function ItemList({
           <li key={item.variantId}>
             <button
               onClick={() => addItem(item)}
-              className="flex w-full items-center gap-3 px-4 py-3 text-left active:bg-slate-50"
+              className="flex w-full items-center gap-3 px-4 py-3 text-start active:bg-slate-50"
             >
               <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-slate-100">
                 {item.imageUrl ? (
@@ -363,8 +367,8 @@ function ItemList({
                 <p className="text-xs text-slate-500">
                   {item.brandName}
                   {onHand !== undefined && (
-                    <span className={onHand <= 3 ? "ml-2 text-amber-600" : "ml-2 text-slate-400"}>
-                      · {onHand} left
+                    <span className={onHand <= 3 ? "ms-2 text-amber-600" : "ms-2 text-slate-400"}>
+                      · {onHand} {t("left")}
                     </span>
                   )}
                 </p>
@@ -387,6 +391,7 @@ function Confirmation({
   sellerName: string;
   onNext: () => void;
 }) {
+  const { t } = useT();
   return (
     <div className="mx-auto flex max-w-md flex-col items-center px-4 pt-16 text-center">
       <div className="flex h-20 w-20 items-center justify-center rounded-full bg-green-100">
@@ -394,14 +399,14 @@ function Confirmation({
       </div>
       <h2 className="mt-5 text-2xl font-bold">{fmtMoney(result.total)}</h2>
       <p className="mt-1 text-sm text-slate-500">
-        Sale {result.sale_no} · Sold by {sellerName}
+        {t("sale")} {result.sale_no} · {t("soldBy")} {sellerName}
       </p>
-      <p className="mt-1 text-sm font-medium text-green-700">It counted for you</p>
+      <p className="mt-1 text-sm font-medium text-green-700">{t("itCounted")}</p>
       <button
         onClick={onNext}
         className="press mt-10 w-full rounded-2xl bg-primary py-4 text-xl font-bold text-white"
       >
-        Next sale
+        {t("nextSale")}
       </button>
     </div>
   );

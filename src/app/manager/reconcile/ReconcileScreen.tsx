@@ -123,12 +123,12 @@ export default function ReconcileScreen({
       <div className="mt-2 overflow-x-auto card">
         <table className="w-full min-w-[420px] text-sm">
           <thead>
-            <tr className="bg-slate-50 border-b border-slate-200 text-left text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+            <tr className="bg-slate-50 border-b border-slate-200 text-start text-[11px] font-semibold uppercase tracking-wider text-slate-500">
               <th className="px-4 py-3">Date</th>
               <th className="px-4 py-3">Shop</th>
-              <th className="px-4 py-3 text-right">Till</th>
-              <th className="px-4 py-3 text-right">Recorded</th>
-              <th className="px-4 py-3 text-right">Variance</th>
+              <th className="px-4 py-3 text-end">Till</th>
+              <th className="px-4 py-3 text-end">Recorded</th>
+              <th className="px-4 py-3 text-end">Variance</th>
             </tr>
           </thead>
           <tbody>
@@ -136,10 +136,10 @@ export default function ReconcileScreen({
               <tr key={r.id} className="border-b border-slate-100 last:border-0">
                 <td className="px-4 py-3">{r.date}</td>
                 <td className="px-4 py-3 text-slate-500">{r.shopName}</td>
-                <td className="px-4 py-3 text-right tabular-nums">{fmtMoney(r.tillTotal)}</td>
-                <td className="px-4 py-3 text-right tabular-nums">{fmtMoney(r.recorded)}</td>
+                <td className="px-4 py-3 text-end tabular-nums">{fmtMoney(r.tillTotal)}</td>
+                <td className="px-4 py-3 text-end tabular-nums">{fmtMoney(r.recorded)}</td>
                 <td
-                  className={`px-4 py-3 text-right font-semibold tabular-nums ${
+                  className={`px-4 py-3 text-end font-semibold tabular-nums ${
                     Math.abs(r.variance) < 0.005 ? "text-green-700" : "text-amber-700"
                   }`}
                 >

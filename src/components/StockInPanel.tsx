@@ -147,7 +147,7 @@ export default function StockInPanel({ shopId }: { shopId: string }) {
               <li key={item.variantId}>
                 <button
                   onClick={() => addLine(item)}
-                  className="flex w-full items-center justify-between px-4 py-2.5 text-left text-sm active:bg-slate-50"
+                  className="flex w-full items-center justify-between px-4 py-2.5 text-start text-sm active:bg-slate-50"
                 >
                   <span>{itemLabel(item)}</span>
                   <span className="font-mono text-xs text-slate-400">{item.sku}</span>
@@ -176,7 +176,7 @@ export default function StockInPanel({ shopId }: { shopId: string }) {
                     )
                   )
                 }
-                className="w-20 rounded-lg border border-slate-300 px-2 py-1.5 text-right text-sm tabular-nums"
+                className="w-20 rounded-lg border border-slate-300 px-2 py-1.5 text-end text-sm tabular-nums"
               />
               <button
                 onClick={() => setLines((prev) => prev.filter((x) => x.variantId !== l.variantId))}

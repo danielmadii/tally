@@ -2,9 +2,12 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useT, useSetLocale } from "@/lib/i18n/client";
 
 export default function LoginPage() {
   const router = useRouter();
+  const { t, locale } = useT();
+  const setLocale = useSetLocale();
   const [phone, setPhone] = useState("");
   const [pin, setPin] = useState("");
   const [remember, setRemember] = useState(true);
@@ -23,13 +26,14 @@ export default function LoginPage() {
       });
       const data = await res.json();
       if (!res.ok) {
-        setError(data.error ?? "Login failed");
+        // Auth failures are shown in the reader's language, not the API's.
+        setError(res.status === 401 ? t("wrongCredentials") : data.error ?? t("networkProblem"));
         return;
       }
       router.replace(data.role === "salesperson" ? "/" : "/manager");
       router.refresh();
     } catch {
-      setError("Network problem — try again");
+      setError(t("networkProblem"));
     } finally {
       setBusy(false);
     }
@@ -43,15 +47,15 @@ export default function LoginPage() {
             T
           </div>
           <h1 className="mt-4 text-xl font-semibold tracking-tight text-slate-900">
-            Sign in to Tally
+            {t("signInTitle")}
           </h1>
-          <p className="mt-1 text-sm text-slate-500">Sales attribution &amp; stock</p>
+          <p className="mt-1 text-sm text-slate-500">{t("signInSubtitle")}</p>
         </div>
 
         <form onSubmit={submit} className="card p-6">
           <label className="block">
             <span className="mb-1.5 block text-sm font-medium text-slate-700">
-              Phone number
+              {t("phoneNumber")}
             </span>
             <input
               type="tel"
@@ -61,12 +65,12 @@ export default function LoginPage() {
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
               className="input py-2.5 text-base"
-              placeholder="07xx xxx xxxx"
+              placeholder={t("phonePlaceholder")}
             />
           </label>
 
           <label className="mt-4 block">
-            <span className="mb-1.5 block text-sm font-medium text-slate-700">PIN</span>
+            <span className="mb-1.5 block text-sm font-medium text-slate-700">{t("pin")}</span>
             <input
               type="password"
               inputMode="numeric"
@@ -87,7 +91,7 @@ export default function LoginPage() {
               onChange={(e) => setRemember(e.target.checked)}
               className="h-4 w-4 rounded accent-primary"
             />
-            Keep me signed in for 30 days
+            {t("keepSignedIn")}
           </label>
 
           {error && (
@@ -97,12 +101,27 @@ export default function LoginPage() {
           )}
 
           <button type="submit" disabled={busy} className="btn btn-primary mt-5 h-11 w-full text-base">
-            {busy ? "Signing in…" : "Sign in"}
+            {busy ? t("signingIn") : t("signIn")}
           </button>
         </form>
 
-        <p className="mt-6 text-center text-xs text-slate-400">
-          Forgot your PIN? Your supervisor can issue a new one.
+        <div className="mt-6 flex justify-center gap-2">
+          {(["en", "ar"] as const).map((l) => (
+            <button
+              key={l}
+              type="button"
+              onClick={() => setLocale(l)}
+              className={`rounded-md px-3 py-1.5 text-xs font-medium ${
+                locale === l ? "bg-slate-900 text-white" : "bg-white text-slate-500 border border-slate-200"
+              }`}
+            >
+              {l === "en" ? "English" : "العربية"}
+            </button>
+          ))}
+        </div>
+
+        <p className="mt-4 text-center text-xs text-slate-400">
+          {t("forgotPin")}
         </p>
       </div>
     </main>

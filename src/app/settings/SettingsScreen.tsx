@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { LogOut } from "lucide-react";
+import { LogOut, Languages } from "lucide-react";
+import { useT, useSetLocale } from "@/lib/i18n/client";
 
 export default function SettingsScreen({
   name,
@@ -14,6 +15,8 @@ export default function SettingsScreen({
   shopName: string | null;
 }) {
   const router = useRouter();
+  const { t, locale } = useT();
+  const setLocale = useSetLocale();
   const [form, setForm] = useState({ currentPin: "", newPin: "", confirmPin: "" });
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<{ ok: boolean; text: string } | null>(null);
@@ -22,7 +25,7 @@ export default function SettingsScreen({
     e.preventDefault();
     if (busy) return;
     if (form.newPin !== form.confirmPin) {
-      setMessage({ ok: false, text: "The two new PINs do not match." });
+      setMessage({ ok: false, text: t("pinsDoNotMatch") });
       return;
     }
     setBusy(true);
@@ -36,8 +39,8 @@ export default function SettingsScreen({
       const data = await res.json();
       setMessage(
         res.ok
-          ? { ok: true, text: "PIN changed — use it next time you sign in." }
-          : { ok: false, text: data.error ?? "Could not change your PIN" }
+          ? { ok: true, text: t("pinChanged") }
+          : { ok: false, text: data.error ?? t("couldNotChangePin") }
       );
       if (res.ok) setForm({ currentPin: "", newPin: "", confirmPin: "" });
     } finally {
@@ -54,16 +57,38 @@ export default function SettingsScreen({
   return (
     <div className="mx-auto max-w-md px-4 pt-4">
       <div className="card p-4">
-        <Row label="Name" value={name} />
-        <Row label="Phone" value={phone} mono />
-        <Row label="Shop" value={shopName ?? "—"} last />
+        <Row label={t("name")} value={name} />
+        <Row label={t("phoneNumber")} value={phone} mono />
+        <Row label={t("shop")} value={shopName ?? "—"} last />
+      </div>
+
+      <div className="card mt-4 p-4">
+        <h2 className="flex items-center gap-2 text-sm font-semibold text-slate-900">
+          <Languages className="h-4 w-4 text-slate-400" />
+          {t("language")}
+        </h2>
+        <div className="mt-3 flex gap-2">
+          {(["en", "ar"] as const).map((l) => (
+            <button
+              key={l}
+              onClick={() => setLocale(l)}
+              className={`flex-1 rounded-md py-2.5 text-sm font-semibold ${
+                locale === l
+                  ? "bg-primary text-white"
+                  : "border border-slate-200 bg-white text-slate-600"
+              }`}
+            >
+              {l === "en" ? t("english") : t("arabic")}
+            </button>
+          ))}
+        </div>
       </div>
 
       <form onSubmit={changePin} className="card mt-4 p-4">
-        <h2 className="text-sm font-semibold text-slate-900">Change PIN</h2>
+        <h2 className="text-sm font-semibold text-slate-900">{t("changePin")}</h2>
 
         <label className="mt-3 block">
-          <span className="mb-1 block text-xs font-medium text-slate-500">Current PIN</span>
+          <span className="mb-1 block text-xs font-medium text-slate-500">{t("currentPin")}</span>
           <input
             required
             type="password"
@@ -77,7 +102,7 @@ export default function SettingsScreen({
         </label>
 
         <label className="mt-3 block">
-          <span className="mb-1 block text-xs font-medium text-slate-500">New PIN</span>
+          <span className="mb-1 block text-xs font-medium text-slate-500">{t("newPin")}</span>
           <input
             required
             type="password"
@@ -91,7 +116,7 @@ export default function SettingsScreen({
         </label>
 
         <label className="mt-3 block">
-          <span className="mb-1 block text-xs font-medium text-slate-500">Repeat new PIN</span>
+          <span className="mb-1 block text-xs font-medium text-slate-500">{t("repeatNewPin")}</span>
           <input
             required
             type="password"
@@ -115,7 +140,7 @@ export default function SettingsScreen({
         )}
 
         <button type="submit" disabled={busy} className="btn btn-primary press mt-4 h-11 w-full">
-          {busy ? "Saving…" : "Change PIN"}
+          {busy ? t("saving") : t("changePin")}
         </button>
       </form>
 
@@ -124,7 +149,7 @@ export default function SettingsScreen({
         className="btn btn-secondary press mt-4 h-11 w-full text-red-600"
       >
         <LogOut className="h-4 w-4" />
-        Sign out
+        {t("signOut")}
       </button>
     </div>
   );

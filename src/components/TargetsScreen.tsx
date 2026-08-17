@@ -67,10 +67,10 @@ export default function TargetsScreen() {
         <div className="card mt-4 overflow-hidden">
           <table className="w-full text-sm">
             <thead>
-              <tr className="bg-slate-50 border-b border-slate-200 text-left text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+              <tr className="bg-slate-50 border-b border-slate-200 text-start text-[11px] font-semibold uppercase tracking-wider text-slate-500">
                 <th className="px-4 py-3">Salesperson</th>
                 <th className="px-4 py-3">Shop</th>
-                <th className="px-4 py-3 text-right">Target</th>
+                <th className="px-4 py-3 text-end">Target</th>
               </tr>
             </thead>
             <tbody>
@@ -78,7 +78,7 @@ export default function TargetsScreen() {
                 <tr key={r.userId} className="border-b border-slate-100 last:border-0">
                   <td className="px-4 py-3 font-medium">{r.name}</td>
                   <td className="px-4 py-3 text-slate-500">{r.shopName}</td>
-                  <td className="px-4 py-2 text-right">
+                  <td className="px-4 py-2 text-end">
                     <input
                       type="number"
                       inputMode="decimal"
@@ -88,7 +88,7 @@ export default function TargetsScreen() {
                         setValues((prev) => ({ ...prev, [r.userId]: e.target.value }))
                       }
                       placeholder="—"
-                      className="w-32 rounded-md border border-slate-300 px-3 py-2 text-right tabular-nums outline-none focus:border-primary focus:ring-2 focus:ring-primary/15"
+                      className="w-32 rounded-md border border-slate-300 px-3 py-2 text-end tabular-nums outline-none focus:border-primary focus:ring-2 focus:ring-primary/15"
                     />
                   </td>
                 </tr>

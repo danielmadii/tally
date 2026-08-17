@@ -45,7 +45,7 @@ export default async function ShopDetailPage({
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-primary">
             {shop.name}
-            {!shop.is_active && <span className="badge badge-neutral ml-2 align-middle">closed</span>}
+            {!shop.is_active && <span className="badge badge-neutral ms-2 align-middle">closed</span>}
           </h1>
           <p className="page-desc">
             {shop.city ?? "—"} · <span className="font-mono">{shop.code}</span>
@@ -76,23 +76,23 @@ export default async function ShopDetailPage({
         <div className="card mt-2 overflow-x-auto">
           <table className="w-full min-w-[560px] text-sm">
             <thead>
-              <tr className="bg-slate-50 border-b border-slate-200 text-left text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+              <tr className="bg-slate-50 border-b border-slate-200 text-start text-[11px] font-semibold uppercase tracking-wider text-slate-500">
                 <th className="px-4 py-3">Salesperson</th>
-                <th className="px-4 py-3 text-right">Today</th>
-                <th className="px-4 py-3 text-right">Month</th>
-                <th className="px-4 py-3 text-right">Units</th>
-                <th className="px-4 py-3 text-right">Attainment</th>
+                <th className="px-4 py-3 text-end">Today</th>
+                <th className="px-4 py-3 text-end">Month</th>
+                <th className="px-4 py-3 text-end">Units</th>
+                <th className="px-4 py-3 text-end">Attainment</th>
               </tr>
             </thead>
             <tbody>
               {staff.map((s) => (
                 <tr key={s.userId} className="border-b border-slate-100 last:border-0">
                   <td className="px-4 py-3 font-medium">{s.name}</td>
-                  <td className="px-4 py-3 text-right tabular-nums">{fmtMoney(s.todayRevenue)}</td>
-                  <td className="px-4 py-3 text-right font-semibold tabular-nums">
+                  <td className="px-4 py-3 text-end tabular-nums">{fmtMoney(s.todayRevenue)}</td>
+                  <td className="px-4 py-3 text-end font-semibold tabular-nums">
                     {fmtMoney(s.monthRevenue)}
                   </td>
-                  <td className="px-4 py-3 text-right tabular-nums">{fmtInt(s.monthUnits)}</td>
+                  <td className="px-4 py-3 text-end tabular-nums">{fmtInt(s.monthUnits)}</td>
                   <td className="px-4 py-3">
                     {s.attainmentPct !== null ? (
                       <div className="flex items-center justify-end gap-2">
@@ -104,12 +104,12 @@ export default async function ShopDetailPage({
                             style={{ width: `${Math.min(s.attainmentPct, 100)}%` }}
                           />
                         </div>
-                        <span className="w-12 text-right font-semibold tabular-nums">
+                        <span className="w-12 text-end font-semibold tabular-nums">
                           {s.attainmentPct}%
                         </span>
                       </div>
                     ) : (
-                      <span className="block text-right text-slate-400">no target</span>
+                      <span className="block text-end text-slate-400">no target</span>
                     )}
                   </td>
                 </tr>
@@ -176,11 +176,11 @@ export default async function ShopDetailPage({
         <div className="card mt-3 overflow-x-auto">
           <table className="w-full min-w-[480px] text-sm">
             <thead>
-              <tr className="bg-slate-50 border-b border-slate-200 text-left text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+              <tr className="bg-slate-50 border-b border-slate-200 text-start text-[11px] font-semibold uppercase tracking-wider text-slate-500">
                 <th className="px-4 py-3">Item</th>
                 <th className="px-4 py-3">SKU</th>
-                <th className="px-4 py-3 text-right">Price</th>
-                <th className="px-4 py-3 text-right">On hand</th>
+                <th className="px-4 py-3 text-end">Price</th>
+                <th className="px-4 py-3 text-end">On hand</th>
               </tr>
             </thead>
             <tbody>
@@ -191,8 +191,8 @@ export default async function ShopDetailPage({
                     <p className="text-xs text-slate-500">{r.brand}</p>
                   </td>
                   <td className="px-4 py-3 font-mono text-xs text-slate-500">{r.sku}</td>
-                  <td className="px-4 py-3 text-right tabular-nums">{fmtMoney(r.price)}</td>
-                  <td className="px-4 py-3 text-right">
+                  <td className="px-4 py-3 text-end tabular-nums">{fmtMoney(r.price)}</td>
+                  <td className="px-4 py-3 text-end">
                     <span
                       className={`inline-block min-w-10 rounded-md px-2 py-1 text-center font-semibold tabular-nums ${
                         r.low ? "bg-amber-100 text-amber-800" : "bg-slate-100 text-slate-700"

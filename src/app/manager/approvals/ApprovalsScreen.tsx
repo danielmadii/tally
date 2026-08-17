@@ -154,12 +154,12 @@ export default function ApprovalsScreen({
       <div className="mt-3 overflow-x-auto card">
         <table className="w-full min-w-[560px] text-sm">
           <thead>
-            <tr className="bg-slate-50 border-b border-slate-200 text-left text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+            <tr className="bg-slate-50 border-b border-slate-200 text-start text-[11px] font-semibold uppercase tracking-wider text-slate-500">
               <th className="px-4 py-3">Sale</th>
               <th className="px-4 py-3">Salesperson</th>
               <th className="px-4 py-3">Shop</th>
-              <th className="px-4 py-3 text-right">Total</th>
-              <th className="px-4 py-3 text-right">Discount</th>
+              <th className="px-4 py-3 text-end">Total</th>
+              <th className="px-4 py-3 text-end">Discount</th>
               <th className="px-4 py-3">Status</th>
             </tr>
           </thead>
@@ -174,8 +174,8 @@ export default function ApprovalsScreen({
                 </td>
                 <td className="px-4 py-3">{s.salesperson}</td>
                 <td className="px-4 py-3 text-slate-500">{s.shopName}</td>
-                <td className="px-4 py-3 text-right tabular-nums">{fmtMoney(s.total)}</td>
-                <td className="px-4 py-3 text-right tabular-nums">
+                <td className="px-4 py-3 text-end tabular-nums">{fmtMoney(s.total)}</td>
+                <td className="px-4 py-3 text-end tabular-nums">
                   {s.discount > 0 ? fmtMoney(s.discount) : "—"}
                 </td>
                 <td className="px-4 py-3">

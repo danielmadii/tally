@@ -259,7 +259,7 @@ export default function CatalogueScreen({
           </select>
         </label>
 
-        <span className="ml-auto text-sm text-slate-400">
+        <span className="ms-auto text-sm text-slate-400">
           {rows.length.toLocaleString()} item{rows.length === 1 ? "" : "s"}
         </span>
       </div>
@@ -381,13 +381,13 @@ export default function CatalogueScreen({
       <div className="mt-4 overflow-x-auto card">
         <table className="w-full min-w-[820px] text-sm">
           <thead>
-            <tr className="bg-slate-50 border-b border-slate-200 text-left text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+            <tr className="bg-slate-50 border-b border-slate-200 text-start text-[11px] font-semibold uppercase tracking-wider text-slate-500">
               <th className="px-4 py-3">Variant</th>
               <th className="px-4 py-3">Brand</th>
               <th className="px-4 py-3">Barcode</th>
-              <th className="px-4 py-3 text-right">In stock</th>
-              <th className="px-4 py-3 text-right">Cost</th>
-              <th className="px-4 py-3 text-right">Price</th>
+              <th className="px-4 py-3 text-end">In stock</th>
+              <th className="px-4 py-3 text-end">Cost</th>
+              <th className="px-4 py-3 text-end">Price</th>
               <th className="px-4 py-3"></th>
             </tr>
           </thead>
@@ -417,7 +417,7 @@ export default function CatalogueScreen({
                     </span>
                   )}
                 </td>
-                <td className="px-4 py-3 text-right">
+                <td className="px-4 py-3 text-end">
                   <span
                     className={`inline-block min-w-10 rounded-md px-2 py-1 text-center text-xs font-semibold tabular-nums ${
                       (v.qtyOnHand ?? 0) <= v.reorderPoint
@@ -428,10 +428,10 @@ export default function CatalogueScreen({
                     {v.qtyOnHand ?? 0}
                   </span>
                 </td>
-                <td className="px-4 py-3 text-right tabular-nums text-slate-500">
+                <td className="px-4 py-3 text-end tabular-nums text-slate-500">
                   {v.costPrice !== null ? fmtMoney(v.costPrice) : "—"}
                 </td>
-                <td className="px-4 py-3 text-right font-semibold tabular-nums">
+                <td className="px-4 py-3 text-end font-semibold tabular-nums">
                   {v.price > 0 ? fmtMoney(v.price) : <span className="text-slate-400">no price</span>}
                 </td>
                 <td className="px-4 py-3">
