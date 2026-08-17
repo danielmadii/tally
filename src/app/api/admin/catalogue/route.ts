@@ -3,31 +3,34 @@ import { z } from "zod";
 import { db } from "@/lib/server/supabase";
 import { requireApiSession } from "@/lib/server/session";
 import { handle, apiError, requireRole } from "@/lib/server/api";
+import { fetchAll } from "@/lib/server/queries";
 
 export async function GET() {
   return handle(async () => {
     const session = await requireApiSession();
     requireRole(session, "admin");
 
-    const [brandsRes, categoriesRes, variantsRes] = await Promise.all([
+    const [brandsRes, categoriesRes, variants] = await Promise.all([
       db().from("brand").select("id, name").eq("is_active", true).order("name"),
       db().from("category").select("id, name, parent_id").order("name"),
-      db()
-        .from("variant")
-        .select(
-          `id, sku, shade_name, shade_code, size_label, price, cost_price, reorder_point, is_active,
-           product:product_id ( id, name, is_active, brand:brand_id ( name ), category:category_id ( name ) ),
-           barcodes:variant_barcode ( barcode )`
-        )
-        .order("sku"),
+      fetchAll(() =>
+        db()
+          .from("variant")
+          .select(
+            `id, sku, shade_name, shade_code, size_label, price, cost_price, reorder_point, is_active,
+             product:product_id ( id, name, is_active, brand:brand_id ( name ), category:category_id ( name ) ),
+             barcodes:variant_barcode ( barcode )`
+          )
+          .order("sku")
+      ),
     ]);
-    for (const r of [brandsRes, categoriesRes, variantsRes]) if (r.error) throw r.error;
+    for (const r of [brandsRes, categoriesRes]) if (r.error) throw r.error;
 
     /* eslint-disable @typescript-eslint/no-explicit-any */
     return {
       brands: brandsRes.data,
       categories: categoriesRes.data,
-      variants: (variantsRes.data as any[]).map((v) => ({
+      variants: (variants as any[]).map((v) => ({
         id: v.id,
         sku: v.sku,
         name: [v.product?.name, v.shade_name].filter(Boolean).join(" — "),

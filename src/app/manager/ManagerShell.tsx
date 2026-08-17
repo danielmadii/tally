@@ -3,10 +3,10 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
+import { useQuery } from "@tanstack/react-query";
 import {
   LayoutDashboard,
   Store,
-  Trophy,
   Package,
   Boxes,
   ClipboardCheck,
@@ -16,6 +16,7 @@ import {
   LogOut,
   Menu,
   X,
+  Bell,
   PanelLeftClose,
   PanelLeftOpen,
 } from "lucide-react";
@@ -31,9 +32,8 @@ const NAV: { section: string; items: NavItem[] }[] = [
   {
     section: "Overview",
     items: [
-      { href: "/manager", label: "Live dashboard", icon: LayoutDashboard },
+      { href: "/manager", label: "Dashboard", icon: LayoutDashboard },
       { href: "/manager/shops", label: "Shops", icon: Store },
-      { href: "/manager/leaderboard", label: "Leaderboard", icon: Trophy },
       { href: "/manager/products", label: "Products", icon: Package },
     ],
   },
@@ -49,12 +49,78 @@ const NAV: { section: string; items: NavItem[] }[] = [
     section: "Administration",
     items: [
       { href: "/manager/targets", label: "Targets", icon: Target, adminOnly: true },
-      { href: "/manager/admin", label: "Admin", icon: Settings, adminOnly: true },
+      { href: "/manager/admin", label: "Settings", icon: Settings, adminOnly: true },
     ],
   },
 ];
 
 const COLLAPSE_KEY = "tally-sidebar-collapsed";
+
+function NotificationBell() {
+  const [open, setOpen] = useState(false);
+  const { data } = useQuery({
+    queryKey: ["notifications"],
+    queryFn: async () => {
+      const res = await fetch("/api/notifications");
+      if (!res.ok) throw new Error("notifications");
+      return res.json() as Promise<{ voidRequests: number; lowStock: number }>;
+    },
+    refetchInterval: 60_000,
+  });
+  const total = (data?.voidRequests ?? 0) + (data?.lowStock ?? 0);
+
+  return (
+    <div className="relative">
+      <button
+        onClick={() => setOpen((v) => !v)}
+        aria-label="Notifications"
+        className="relative rounded-md p-2 text-slate-500 hover:bg-slate-100 hover:text-slate-700"
+      >
+        <Bell className="h-[18px] w-[18px]" />
+        {total > 0 && (
+          <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-bold text-white">
+            {total > 99 ? "99+" : total}
+          </span>
+        )}
+      </button>
+
+      {open && (
+        <>
+          <div className="fixed inset-0 z-30" onClick={() => setOpen(false)} />
+          <div className="absolute right-0 top-11 z-40 w-72 rounded-lg border border-slate-200 bg-white p-2 shadow-lg">
+            {total === 0 && (
+              <p className="px-3 py-4 text-center text-sm text-slate-400">All clear — nothing needs you.</p>
+            )}
+            {(data?.voidRequests ?? 0) > 0 && (
+              <Link
+                href="/manager/approvals"
+                onClick={() => setOpen(false)}
+                className="block rounded-md px-3 py-2.5 text-sm hover:bg-slate-50"
+              >
+                <span className="font-semibold text-slate-900">
+                  {data!.voidRequests} void request{data!.voidRequests === 1 ? "" : "s"}
+                </span>{" "}
+                <span className="text-slate-500">awaiting approval</span>
+              </Link>
+            )}
+            {(data?.lowStock ?? 0) > 0 && (
+              <Link
+                href="/manager/stock"
+                onClick={() => setOpen(false)}
+                className="block rounded-md px-3 py-2.5 text-sm hover:bg-slate-50"
+              >
+                <span className="font-semibold text-slate-900">
+                  {data!.lowStock} item{data!.lowStock === 1 ? "" : "s"}
+                </span>{" "}
+                <span className="text-slate-500">at or below reorder point</span>
+              </Link>
+            )}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
 
 function Sidebar({
   name,
@@ -87,7 +153,27 @@ function Sidebar({
             <p className="text-[11px] text-slate-400">Sales &amp; Stock</p>
           </div>
         )}
+        {onToggleCollapse && !collapsed && (
+          <button
+            onClick={onToggleCollapse}
+            title="Collapse menu"
+            aria-label="Collapse menu"
+            className="ml-auto rounded-md p-1.5 text-slate-500 hover:bg-white/5 hover:text-slate-200"
+          >
+            <PanelLeftClose className="h-4 w-4" />
+          </button>
+        )}
       </div>
+      {onToggleCollapse && collapsed && (
+        <button
+          onClick={onToggleCollapse}
+          title="Expand menu"
+          aria-label="Expand menu"
+          className="mx-auto mb-2 rounded-md p-1.5 text-slate-500 hover:bg-white/5 hover:text-slate-200"
+        >
+          <PanelLeftOpen className="h-4 w-4" />
+        </button>
+      )}
 
       <nav className={`flex-1 overflow-y-auto pb-4 ${collapsed ? "px-2" : "px-3"}`}>
         {sections.map((section) => (
@@ -151,22 +237,6 @@ function Sidebar({
           <LogOut className="h-4 w-4 shrink-0" />
           {!collapsed && "Sign out"}
         </button>
-        {onToggleCollapse && (
-          <button
-            onClick={onToggleCollapse}
-            title={collapsed ? "Expand menu" : undefined}
-            className={`mt-2 flex w-full items-center gap-2 rounded-lg py-2 text-xs font-medium text-slate-400 hover:bg-slate-800 hover:text-white ${
-              collapsed ? "justify-center px-0" : "px-3"
-            }`}
-          >
-            {collapsed ? (
-              <PanelLeftOpen className="h-4 w-4 shrink-0" />
-            ) : (
-              <PanelLeftClose className="h-4 w-4 shrink-0" />
-            )}
-            {!collapsed && "Collapse menu"}
-          </button>
-        )}
       </div>
     </div>
   );
@@ -255,16 +325,20 @@ export default function ManagerShell({
       )}
 
       <div className="flex min-w-0 flex-1 flex-col">
-        {/* Mobile top bar */}
-        <header className="safe-top sticky top-0 z-20 flex items-center gap-3 border-b border-slate-200 bg-background/95 px-4 py-3 backdrop-blur lg:hidden">
-          <button
-            onClick={() => setDrawerOpen((v) => !v)}
-            aria-label="Menu"
-            className="rounded-lg p-2 text-slate-600 active:bg-slate-100"
-          >
-            {drawerOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-          </button>
-          <p className="text-sm font-semibold">Tally</p>
+        {/* Slim top bar: menu (mobile) left, notification bell right */}
+        <header className="safe-top sticky top-0 z-20 flex h-12 items-center justify-between border-b border-slate-200 bg-white/95 px-4 backdrop-blur lg:px-6">
+          <div className="flex items-center gap-3 lg:hidden">
+            <button
+              onClick={() => setDrawerOpen((v) => !v)}
+              aria-label="Menu"
+              className="rounded-md p-2 text-slate-600 active:bg-slate-100"
+            >
+              {drawerOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+            </button>
+            <p className="text-sm font-semibold">Tally</p>
+          </div>
+          <div className="hidden lg:block" />
+          <NotificationBell />
         </header>
 
         <main className="mx-auto w-full max-w-6xl flex-1 px-4 pb-16 pt-6 lg:px-8">{children}</main>

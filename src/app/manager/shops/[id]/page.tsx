@@ -5,6 +5,7 @@ import { requireSession } from "@/lib/server/session";
 import { getShopDetail } from "@/lib/server/queries";
 import { fmtMoney, fmtInt } from "@/lib/format";
 import StockInPanel from "../../stock/StockInPanel";
+import ImportPanel from "../../admin/ImportPanel";
 
 export const dynamic = "force-dynamic";
 
@@ -113,7 +114,7 @@ export default async function ShopDetailPage({
 
       <section className="mt-8">
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <h2 className="section-label">Stock on hand — this shop</h2>
+          <h2 className="section-label">Products &amp; stock — this shop</h2>
           {lowCount > 0 && (
             <span className="badge badge-warn">
               <TriangleAlert className="h-3.5 w-3.5" />
@@ -121,7 +122,44 @@ export default async function ShopDetailPage({
             </span>
           )}
         </div>
-        <div className="card mt-2 overflow-x-auto">
+
+        {stock.length === 0 && (
+          <div className="card mt-3 border-dashed p-8 text-center">
+            <p className="text-base font-semibold text-slate-900">
+              No products in this shop yet
+            </p>
+            <p className="mx-auto mt-1 max-w-md text-sm text-slate-500">
+              Import your product list from an Excel file — brand, item code, description,
+              barcode and price. Everything ends up in this shop automatically.
+            </p>
+            <div className="mt-4 flex flex-col items-center gap-2">
+              {session.role === "admin" ? (
+                <ImportPanel
+                  lockedShopId={id}
+                  lockedShopName={shop.name}
+                  buttonLabel="Import products (Excel)"
+                />
+              ) : (
+                <p className="text-sm text-slate-400">
+                  Ask an administrator to import the product list.
+                </p>
+              )}
+            </div>
+          </div>
+        )}
+
+        {stock.length > 0 && session.role === "admin" && (
+          <div className="mt-3">
+            <ImportPanel
+              lockedShopId={id}
+              lockedShopName={shop.name}
+              buttonLabel="Import products (Excel)"
+            />
+          </div>
+        )}
+
+        {stock.length > 0 && (
+        <div className="card mt-3 overflow-x-auto">
           <table className="w-full min-w-[480px] text-sm">
             <thead>
               <tr className="bg-slate-50 border-b border-slate-200 text-left text-[11px] font-semibold uppercase tracking-wider text-slate-500">
@@ -151,16 +189,10 @@ export default async function ShopDetailPage({
                   </td>
                 </tr>
               ))}
-              {stock.length === 0 && (
-                <tr>
-                  <td colSpan={4} className="px-4 py-10 text-center text-slate-400">
-                    No stock records for this shop yet.
-                  </td>
-                </tr>
-              )}
             </tbody>
           </table>
         </div>
+        )}
 
         <StockInPanel shopId={id} />
       </section>

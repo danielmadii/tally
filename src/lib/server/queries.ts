@@ -2,20 +2,42 @@ import { db } from "@/lib/server/supabase";
 import { businessDate, monthStart } from "@/lib/format";
 import type { CatalogueItem, MyStats, MySale } from "@/lib/types";
 
+/**
+ * PostgREST caps every response at 1000 rows — reads that can exceed that
+ * (catalogue, stock) must page or they silently truncate.
+ */
+/* eslint-disable @typescript-eslint/no-explicit-any */
+export async function fetchAll<T = any>(
+  build: () => { range: (from: number, to: number) => PromiseLike<{ data: unknown; error: unknown }> }
+): Promise<T[]> {
+  const size = 1000;
+  const all: T[] = [];
+  for (let from = 0; ; from += size) {
+    const { data, error } = await build().range(from, from + size - 1);
+    if (error) throw error;
+    const rows = (data ?? []) as T[];
+    all.push(...rows);
+    if (rows.length < size) break;
+  }
+  return all;
+}
+
 // ---------- catalogue ----------
 
 export async function getCatalogue(): Promise<CatalogueItem[]> {
-  const { data, error } = await db()
-    .from("variant")
-    .select(
-      `id, sku, shade_name, shade_code, size_label, price, image_url,
-       product:product_id!inner ( name, is_active,
-         brand:brand_id ( name ),
-         category:category_id ( name ) ),
-       barcodes:variant_barcode ( barcode )`
-    )
-    .eq("is_active", true);
-  if (error) throw error;
+  const data = await fetchAll(() =>
+    db()
+      .from("variant")
+      .select(
+        `id, sku, shade_name, shade_code, size_label, price, image_url,
+         product:product_id!inner ( name, is_active,
+           brand:brand_id ( name ),
+           category:category_id ( name ) ),
+         barcodes:variant_barcode ( barcode )`
+      )
+      .eq("is_active", true)
+      .order("sku")
+  );
 
   /* eslint-disable @typescript-eslint/no-explicit-any */
   return (data as any[])
@@ -151,16 +173,18 @@ export async function getMySales(userId: string, period: "today" | "month"): Pro
 // ---------- stock ----------
 
 export async function getStock(shopId: string) {
-  const { data, error } = await db()
-    .from("stock_level")
-    .select(
-      `qty_on_hand, updated_at,
-       variant:variant_id!inner ( id, sku, shade_name, size_label, price, reorder_point,
-         product:product_id ( name, brand:brand_id ( name ) ) )`
-    )
-    .eq("shop_id", shopId)
-    .order("qty_on_hand", { ascending: true });
-  if (error) throw error;
+  const data = await fetchAll(() =>
+    db()
+      .from("stock_level")
+      .select(
+        `qty_on_hand, updated_at,
+         variant:variant_id!inner ( id, sku, shade_name, size_label, price, reorder_point,
+           product:product_id ( name, brand:brand_id ( name ) ) )`
+      )
+      .eq("shop_id", shopId)
+      .order("qty_on_hand", { ascending: true })
+      .order("variant_id")
+  );
 
   /* eslint-disable @typescript-eslint/no-explicit-any */
   return (data as any[]).map((r) => ({
@@ -392,27 +416,27 @@ export async function getDeadStock(days = 60, shopId: string | null = null) {
 
 export async function getShopsOverview() {
   const today = businessDate();
-  const [shopsRes, salesRes, stockRes, staffRes] = await Promise.all([
+  const [shopsRes, salesRes, lowRes, staffRes] = await Promise.all([
     db().from("shop").select("id, code, name, city, is_active").order("name"),
     db()
       .from("sale")
       .select("shop_id, total, sale_line ( qty )")
       .eq("business_date", today)
       .eq("status", "completed"),
-    db()
-      .from("stock_level")
-      .select("shop_id, qty_on_hand, variant:variant_id!inner ( reorder_point, is_active )"),
+    db().rpc("low_stock_counts"),
     db()
       .from("user_shop")
       .select("shop_id, user:user_id!inner ( role, is_active )")
       .is("end_date", null),
   ]);
-  for (const r of [shopsRes, salesRes, stockRes, staffRes]) if (r.error) throw r.error;
+  for (const r of [shopsRes, salesRes, lowRes, staffRes]) if (r.error) throw r.error;
 
   /* eslint-disable @typescript-eslint/no-explicit-any */
+  const lowByShop = new Map(
+    ((lowRes.data ?? []) as any[]).map((r) => [r.shop_id, Number(r.low_count)])
+  );
   return (shopsRes.data ?? []).map((shop: any) => {
     const sales = ((salesRes.data ?? []) as any[]).filter((s) => s.shop_id === shop.id);
-    const stock = ((stockRes.data ?? []) as any[]).filter((l) => l.shop_id === shop.id);
     const staff = ((staffRes.data ?? []) as any[]).filter(
       (a) => a.shop_id === shop.id && a.user?.is_active && a.user?.role === "salesperson"
     );
@@ -429,9 +453,7 @@ export async function getShopsOverview() {
         0
       ),
       staffCount: staff.length,
-      lowStockCount: stock.filter(
-        (l) => l.variant?.is_active !== false && l.qty_on_hand <= (l.variant?.reorder_point ?? 0)
-      ).length,
+      lowStockCount: lowByShop.get(shop.id) ?? 0,
     };
   });
 }

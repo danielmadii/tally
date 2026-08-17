@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { FileSpreadsheet, Upload, X } from "lucide-react";
 
@@ -42,11 +43,21 @@ function mapHeaders(headers: string[]) {
   };
 }
 
-export default function ImportPanel() {
+export default function ImportPanel({
+  lockedShopId,
+  lockedShopName,
+  buttonLabel = "Import Excel",
+}: {
+  /** When set (e.g. on a shop page), items import into this shop — no picker. */
+  lockedShopId?: string;
+  lockedShopName?: string;
+  buttonLabel?: string;
+}) {
   const queryClient = useQueryClient();
+  const router = useRouter();
   const fileRef = useRef<HTMLInputElement>(null);
   const [preview, setPreview] = useState<Preview | null>(null);
-  const [shopId, setShopId] = useState("");
+  const [shopId, setShopId] = useState(lockedShopId ?? "");
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
 
@@ -124,6 +135,10 @@ export default function ImportPanel() {
 
   async function runImport() {
     if (!preview || busy) return;
+    if (!shopId) {
+      setMessage("Choose which shop these products belong to first.");
+      return;
+    }
     setBusy(true);
     setMessage(null);
     try {
@@ -133,7 +148,7 @@ export default function ImportPanel() {
         body: JSON.stringify({
           rows: preview.rows,
           defaultCategory: "Imported",
-          shopId: shopId || null,
+          shopId,
         }),
       });
       const data = await res.json();
@@ -152,6 +167,7 @@ export default function ImportPanel() {
       setPreview(null);
       queryClient.invalidateQueries({ queryKey: ["admin-catalogue"] });
       queryClient.invalidateQueries({ queryKey: ["catalogue"] });
+      router.refresh();
     } finally {
       setBusy(false);
     }
@@ -172,7 +188,7 @@ export default function ImportPanel() {
       />
       <button onClick={() => fileRef.current?.click()} className="btn btn-secondary">
         <FileSpreadsheet className="h-4 w-4" />
-        Import Excel
+        {buttonLabel}
       </button>
 
       {message && (
@@ -239,32 +255,42 @@ export default function ImportPanel() {
           </p>
 
           <div className="mt-4 flex flex-wrap items-center gap-3">
-            <label className="flex items-center gap-2 text-sm text-slate-600">
-              Stock location
-              <select
-                value={shopId}
-                onChange={(e) => setShopId(e.target.value)}
-                className="input w-auto py-2"
-              >
-                <option value="">None (catalogue only)</option>
-                {shops.map((s) => (
-                  <option key={s.id} value={s.id}>
-                    {s.name}
+            {lockedShopId ? (
+              <span className="text-sm text-slate-600">
+                Importing into <span className="font-semibold text-slate-900">{lockedShopName}</span>
+              </span>
+            ) : (
+              <label className="flex items-center gap-2 text-sm text-slate-600">
+                Which shop?
+                <select
+                  value={shopId}
+                  onChange={(e) => setShopId(e.target.value)}
+                  className="input w-auto py-2"
+                >
+                  <option value="" disabled>
+                    Choose a shop…
                   </option>
-                ))}
-              </select>
-            </label>
-            <button onClick={runImport} disabled={busy} className="btn btn-primary">
+                  {shops.map((s) => (
+                    <option key={s.id} value={s.id}>
+                      {s.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            )}
+            <button
+              onClick={runImport}
+              disabled={busy || !shopId}
+              className="btn btn-primary"
+            >
               <Upload className="h-4 w-4" />
               {busy ? "Importing…" : `Import ${preview.rows.length.toLocaleString()} items`}
             </button>
           </div>
-          {shopId && (
-            <p className="mt-2 text-xs text-slate-400">
-              Items will be listed in this shop’s stock. If the file has a quantity column it
-              becomes opening stock; otherwise they start at 0 on hand.
-            </p>
-          )}
+          <p className="mt-2 text-xs text-slate-400">
+            Items will appear in the shop’s stock. If the file has a quantity column it becomes
+            opening stock; otherwise items start at 0 on hand until you receive goods.
+          </p>
         </div>
       )}
     </>
