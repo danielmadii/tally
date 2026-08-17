@@ -429,7 +429,7 @@ export async function getDeadStock(days = 60, shopId: string | null = null) {
 export async function getShopsOverview() {
   const today = businessDate();
   const [shopsRes, salesRes, lowRes, staffRes] = await Promise.all([
-    db().from("shop").select("id, code, name, city, is_active").order("name"),
+    db().from("shop").select("id, code, name, city, address, is_active").order("name"),
     db()
       .from("sale")
       .select("shop_id, total, sale_line ( qty )")
@@ -457,6 +457,7 @@ export async function getShopsOverview() {
       code: shop.code,
       name: shop.name,
       city: shop.city,
+      address: shop.address,
       isActive: shop.is_active,
       revenueToday: sales.reduce((s, r) => s + Number(r.total), 0),
       transactionsToday: sales.length,
@@ -475,7 +476,7 @@ export async function getShopDetail(shopId: string) {
   const mStart = monthStart();
 
   const [shopRes, todayRes, monthRes, staffRes, targetsRes] = await Promise.all([
-    db().from("shop").select("id, code, name, city, is_active").eq("id", shopId).maybeSingle(),
+    db().from("shop").select("id, code, name, city, address, is_active").eq("id", shopId).maybeSingle(),
     db()
       .from("sale")
       .select("salesperson_id, total, sale_line ( qty )")

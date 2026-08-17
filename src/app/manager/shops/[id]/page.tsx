@@ -1,11 +1,12 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { ArrowLeft, Pencil, TriangleAlert } from "lucide-react";
+import { ArrowLeft, TriangleAlert } from "lucide-react";
 import { requireSession } from "@/lib/server/session";
 import { getShopDetail } from "@/lib/server/queries";
 import { fmtMoney, fmtInt } from "@/lib/format";
 import StockInPanel from "@/components/StockInPanel";
 import ImportPanel from "../../admin/ImportPanel";
+import EditShopButton from "@/components/EditShopButton";
 
 export const dynamic = "force-dynamic";
 
@@ -50,10 +51,15 @@ export default async function ShopDetailPage({
           </p>
         </div>
         {session.role === "admin" && (
-          <Link href="/manager/admin?tab=shops" className="btn btn-secondary">
-            <Pencil className="h-4 w-4" />
-            Edit shop
-          </Link>
+          <EditShopButton
+            shop={{
+              id: shop.id,
+              code: shop.code,
+              name: shop.name,
+              city: shop.city,
+              address: shop.address,
+            }}
+          />
         )}
       </div>
 
