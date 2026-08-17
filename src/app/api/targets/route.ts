@@ -3,7 +3,16 @@ import { z } from "zod";
 import { db } from "@/lib/server/supabase";
 import { requireApiSession } from "@/lib/server/session";
 import { handle, requireRole } from "@/lib/server/api";
+import { getSalespeopleWithTargets } from "@/lib/server/queries";
 import { monthStart } from "@/lib/format";
+
+export async function GET() {
+  return handle(async () => {
+    const session = await requireApiSession();
+    requireRole(session, "admin");
+    return { rows: await getSalespeopleWithTargets() };
+  });
+}
 
 const Body = z.object({
   targets: z

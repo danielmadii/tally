@@ -8,10 +8,8 @@ import {
   LayoutDashboard,
   Store,
   Package,
-  Boxes,
   ClipboardCheck,
   Calculator,
-  Target,
   Settings,
   LogOut,
   Menu,
@@ -40,17 +38,13 @@ const NAV: { section: string; items: NavItem[] }[] = [
   {
     section: "Operations",
     items: [
-      { href: "/manager/stock", label: "Stock", icon: Boxes },
       { href: "/manager/approvals", label: "Approvals", icon: ClipboardCheck },
       { href: "/manager/reconcile", label: "Reconcile", icon: Calculator },
     ],
   },
   {
     section: "Administration",
-    items: [
-      { href: "/manager/targets", label: "Targets", icon: Target, adminOnly: true },
-      { href: "/manager/admin", label: "Settings", icon: Settings, adminOnly: true },
-    ],
+    items: [{ href: "/manager/admin", label: "Settings", icon: Settings, adminOnly: true }],
   },
 ];
 
@@ -157,7 +151,7 @@ function NotificationBell() {
             )}
             {(data?.lowStock ?? 0) > 0 && (
               <Link
-                href="/manager/stock"
+                href="/manager/shops"
                 onClick={() => setOpen(false)}
                 className="block rounded-md px-3 py-2.5 text-sm hover:bg-slate-50"
               >

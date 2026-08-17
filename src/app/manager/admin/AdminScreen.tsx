@@ -6,8 +6,9 @@ import UsersTab from "./UsersTab";
 import ShopsTab from "./ShopsTab";
 import CatalogueTab from "./CatalogueTab";
 import AuditTab from "./AuditTab";
+import TargetsScreen from "@/components/TargetsScreen";
 
-const tabs = ["Users", "Shops", "Catalogue", "Audit log"] as const;
+const tabs = ["Users", "Shops", "Catalogue", "Targets", "Audit log"] as const;
 type Tab = (typeof tabs)[number];
 
 export default function AdminScreen() {
@@ -19,7 +20,7 @@ export default function AdminScreen() {
 
   return (
     <div>
-      <h1 className="page-title">Admin</h1>
+      <h1 className="page-title">Settings</h1>
 
       <div className="mt-3 flex gap-1 overflow-x-auto rounded-xl bg-slate-200/70 p-1">
         {tabs.map((t) => (
@@ -39,6 +40,7 @@ export default function AdminScreen() {
         {tab === "Users" && <UsersTab />}
         {tab === "Shops" && <ShopsTab />}
         {tab === "Catalogue" && <CatalogueTab />}
+        {tab === "Targets" && <TargetsScreen />}
         {tab === "Audit log" && <AuditTab />}
       </div>
     </div>

@@ -4,7 +4,7 @@ import { ArrowLeft, TriangleAlert } from "lucide-react";
 import { requireSession } from "@/lib/server/session";
 import { getShopDetail } from "@/lib/server/queries";
 import { fmtMoney, fmtInt } from "@/lib/format";
-import StockInPanel from "../../stock/StockInPanel";
+import StockInPanel from "@/components/StockInPanel";
 import ImportPanel from "../../admin/ImportPanel";
 
 export const dynamic = "force-dynamic";
