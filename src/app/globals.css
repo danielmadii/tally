@@ -1,26 +1,192 @@
 @import "tailwindcss";
 
+/* ---------------------------------------------------------------------------
+   Tally design tokens — enterprise-neutral chrome, one restrained brand accent.
+   Light-only by design: shops are brightly lit and staff read at arm's length.
+--------------------------------------------------------------------------- */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #f8fafc; /* slate-50 */
+  --foreground: #0f172a; /* slate-900 */
+  --primary: #9d174d; /* deep rose — used sparingly: actions, active states */
+  --primary-hover: #831843;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-primary: var(--primary);
+  --color-primary-hover: var(--primary-hover);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html {
+  color-scheme: light;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans), system-ui, sans-serif;
+  -webkit-tap-highlight-color: transparent;
+  overscroll-behavior-y: none;
+  font-feature-settings: "cv11", "ss01";
+}
+
+/* ---- app shell helpers ---- */
+.safe-bottom {
+  padding-bottom: max(env(safe-area-inset-bottom), 0.5rem);
+}
+.safe-top {
+  padding-top: env(safe-area-inset-top);
+}
+.press:active {
+  transform: scale(0.98);
+  transition: transform 60ms;
+}
+
+/* ---- component primitives ---- */
+@layer components {
+  .card {
+    background: #fff;
+    border: 1px solid var(--color-slate-200);
+    border-radius: var(--radius-lg);
+    box-shadow: 0 1px 2px 0 rgb(15 23 42 / 0.04);
+  }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    height: 2.25rem;
+    padding-inline: 1rem;
+    border-radius: var(--radius-md);
+    font-size: 0.875rem;
+    font-weight: 500;
+    white-space: nowrap;
+    transition: background-color 120ms, border-color 120ms, color 120ms;
+    cursor: pointer;
+  }
+  .btn:disabled {
+    opacity: 0.55;
+    cursor: default;
+  }
+  .btn-primary {
+    background: var(--primary);
+    color: #fff;
+  }
+  .btn-primary:hover:not(:disabled) {
+    background: var(--primary-hover);
+  }
+  .btn-secondary {
+    background: #fff;
+    color: var(--color-slate-700);
+    border: 1px solid var(--color-slate-300);
+  }
+  .btn-secondary:hover:not(:disabled) {
+    background: var(--color-slate-50);
+    border-color: var(--color-slate-400);
+  }
+  .btn-ghost {
+    color: var(--color-slate-500);
+  }
+  .btn-ghost:hover:not(:disabled) {
+    background: var(--color-slate-100);
+    color: var(--color-slate-700);
+  }
+
+  .input {
+    width: 100%;
+    background: #fff;
+    border: 1px solid var(--color-slate-300);
+    border-radius: var(--radius-md);
+    padding: 0.5rem 0.75rem;
+    font-size: 0.875rem;
+    color: var(--color-slate-900);
+    outline: none;
+    transition: border-color 120ms, box-shadow 120ms;
+  }
+  .input::placeholder {
+    color: var(--color-slate-400);
+  }
+  .input:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgb(157 23 77 / 0.12);
+  }
+
+  .tbl {
+    width: 100%;
+    font-size: 0.875rem;
+  }
+  .tbl thead tr {
+    background: var(--color-slate-50);
+    border-bottom: 1px solid var(--color-slate-200);
+  }
+  .tbl th {
+    padding: 0.625rem 1rem;
+    text-align: left;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--color-slate-500);
+  }
+  .tbl td {
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid var(--color-slate-100);
+    vertical-align: middle;
+  }
+  .tbl tbody tr:last-child td {
+    border-bottom: none;
+  }
+  .tbl tbody tr:hover {
+    background: var(--color-slate-50);
+  }
+
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    border-radius: 9999px;
+    padding: 0.125rem 0.625rem;
+    font-size: 0.75rem;
+    font-weight: 500;
+    line-height: 1.25rem;
+  }
+  .badge-neutral {
+    background: var(--color-slate-100);
+    color: var(--color-slate-600);
+  }
+  .badge-warn {
+    background: var(--color-amber-50);
+    color: var(--color-amber-800);
+  }
+  .badge-danger {
+    background: var(--color-red-50);
+    color: var(--color-red-700);
+  }
+  .badge-success {
+    background: var(--color-emerald-50);
+    color: var(--color-emerald-700);
+  }
+
+  .page-title {
+    font-size: 1.125rem;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    color: var(--color-slate-900);
+  }
+  .page-desc {
+    margin-top: 0.25rem;
+    font-size: 0.875rem;
+    color: var(--color-slate-500);
+  }
+  .section-label {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--color-slate-400);
+  }
 }

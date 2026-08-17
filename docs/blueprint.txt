@@ -1,0 +1,794 @@
+
+SOLUTION BLUEPRINT
+Retail Sales Attribution & Stock System
+A multi-shop platform for a cosmetics retail chain
+
+Prepared for
+Cosmetics retail chain — Operations Management
+Purpose
+Technical and operational blueprint for a system that records every sale under the
+salesperson who made it, keeps per-shop stock accurate, and gives management
+live visibility of performance across all shops.
+Scope
+20+ shops · 100+ sales staff · large SKU catalogue · single currency
+Version
+v1.0 — 13 August 2026
+Status
+For review and approval before build
+
+How to read this document
+Sections 1–3 are for decision makers: what the system does, and whether to build it or buy it.
+Sections 4–11 are the technical specification — hand these to whoever builds it.
+Sections 12–15 cover delivery: phases, effort, cost, risks and the decisions still open.
+
+Contents
+1.  Executive summary
+2.  Requirements captured
+3.  Build vs. buy
+4.  Recommended architecture
+5.  Roles and permissions
+6.  Data model
+7.  Product catalogue and barcode strategy
+8.  Screens and user flows
+9.  Reporting and metrics
+10. Business rules, integrity and anti-fraud controls
+11. Non-functional requirements
+12. Phased delivery plan
+13. Effort and cost estimate
+14. Risks and mitigations
+15. Decisions still open
+Appendix A — Core database schema
+Appendix B — API surface
+
+1.  Executive summary
+The chain currently has no reliable way to answer two everyday questions: who sold what, and what is left on the shelf. Sales are attributed informally, stock is known only by looking at it, and management sees performance long after the month it happened in. This blueprint describes a system that closes both gaps with a single action at the counter — the salesperson scans or taps the item and confirms the sale under her own login.
+What the system does
+	•	Attributes every sale to a person and a shop. The salesperson opens a web link on her own phone, logs in with her number and a PIN, scans the product barcode (or searches the catalogue), and confirms. The sale is stamped with her identity, her shop, and the exact time — permanently.
+	•	Keeps stock honest per shop. Every confirmed sale decrements that shop's stock. Managers enter or import received quantities per shop. Low-stock and dead-stock alerts follow automatically.
+	•	Gives management a live picture. A dashboard shows today's sales chain-wide and per shop, a leaderboard of salespeople against their monthly targets, and product performance by shop, brand and category.
+Recommendation in one paragraph
+Build a lightweight custom web application (an installable PWA) rather than buying an off-the-shelf POS. At 20+ shops and 100+ staff, the per-user and per-location pricing of packaged systems costs USD 12,000–40,000 per year for capabilities that are broader than needed and still do not deliver the leaderboard-and-target view the manager actually wants. A focused build costs roughly 60–80 developer-days once and under USD 200 per month to run, is owned outright, and can be extended into commission, loyalty and offline mode later. Section 3 sets out the full comparison, including the case for buying instead.
+
+Headline
+Figure
+Time to first pilot shop
+5 weeks
+Time to full chain rollout
+11 weeks
+One-off build effort
+60–80 developer-days
+Ongoing running cost
+USD 60–180 / month (hosting + backups), independent of headcount
+Cheapest packaged alternative
+USD ~12,000 / year at 20 shops, and still needs custom reporting
+
+2.  Requirements captured
+These are the answers that shaped every decision in this document. If any of them is wrong, flag it now — several sections change as a result.
+Question
+Answer
+Consequence for the design
+Scope at the moment of sale
+Attribution + stock. No cash handling, no receipts — the existing till stays.
+No payment integration, no cash drawer, no fiscal receipt. The system is a system of record for who sold what, not a till.
+Item identification
+Both — scan a barcode when one exists, otherwise search or tap from the catalogue.
+In-browser camera scanning plus a fast search index and a visual product grid. Catalogue quality becomes critical (Section 7).
+Scale
+20+ shops, 100+ sales staff, large catalogue.
+Proper roles and shop isolation, pre-aggregated reporting tables, and a licence model that does not charge per head.
+Manager needs
+Leaderboard and targets · daily shop dashboard · product performance.
+Three first-class reporting surfaces, plus the target-setting admin screen that the leaderboard depends on.
+Login and device
+Each salesperson has her own account and uses her own phone.
+No shared devices to buy. Attribution is unambiguous. Requires per-person accounts, PIN security, and a device/location sanity check.
+Stock operations
+Simple stock-in per shop; returns as a reversing entry.
+No warehouse module, no transfer-and-confirm workflow. Manual entry plus CSV import. Transfers can be added later.
+Connectivity
+Good — online only.
+A straightforward connected web app. The data layer is still designed so offline sync can be added without a rewrite.
+Currency
+Single currency.
+Prices stored as one amount. No exchange-rate table, no dual-currency reporting.
+Commission
+Not yet — visibility first.
+Targets and attainment are built now; the commission calculation engine is deliberately deferred to Phase 4.
+
+One assumption worth confirming
+Because the system does not handle payment, nothing physically forces a salesperson to record a sale. The design compensates with soft controls — stock that visibly drifts from reality, end-of-day reconciliation against the till total, and a leaderboard the team can see. If you want recording to be unavoidable, the system has to become the till (full POS), which is a materially larger project. This is the single biggest fork in the road and is revisited in Section 10.
+
+3.  Build vs. buy
+Three packaged products cover most of this requirement out of the box. All were priced at the scale in question — 20 shops, 100 sales staff — in August 2026.
+3.1  The packaged options
+Option
+Cost at 20 shops / 100 staff
+Fits
+Does not fit
+Loyverse POS
+Free core, plus USD 25/store/month for Employee Management and USD 25/store/month for Advanced Inventory ≈ USD 12,000/year. Vendor asks you to contact them for special pricing above 3 locations.
+Per-employee sales tracking, barcode scanning, per-store stock, works on the girls' own phones.
+Reporting is fixed — no monthly targets, no target-attainment leaderboard, no cross-shop product ranking as you want it. Data export plus a separate reporting layer would still be needed.
+Shopify POS Pro
+USD 89 per location/month billed yearly ≈ USD 21,400/year for 20 shops, plus the underlying Shopify plan.
+Mature staff permissions and reporting, strong inventory, reliable mobile apps.
+Built around e-commerce and payments you do not need. Cost scales with locations. Customising the manager view means building on their platform anyway.
+Odoo (Enterprise)
+USD 31.10 per user/month billed yearly. If every salesperson needs a login that is ≈ USD 37,000/year. Community edition is free but self-hosted and needs a developer.
+Full ERP — inventory, purchasing, accounting all in one, and highly customisable.
+Per-user pricing is punitive with 100+ staff. Heavy to configure and maintain; overkill for "scan, sell, attribute". Realistically needs an implementation partner.
+3.2  The custom build
+A purpose-built application does one thing: attribute sales and track stock, with exactly the three reports management asked for. It is smaller than a POS because it deliberately omits payment, receipts, cash reconciliation, purchasing and accounting.
+Dimension
+Custom build
+Best packaged option (Loyverse)
+Up-front cost
+60–80 developer-days, once
+Effectively zero
+Year-1 total
+Build cost + ~USD 1,500 hosting
+~USD 12,000
+Year-3 cumulative
+Build cost + ~USD 4,500
+~USD 36,000, rising with every new shop
+Cost per new shop
+Zero
++USD 600/year
+Leaderboard vs. targets
+Built exactly as specified
+Not available; needs export + external reporting
+Time to first shop live
+~5 weeks
+~1 week
+Ownership of data
+Yours, in your own database
+Vendor-hosted; export-dependent
+Ongoing maintenance
+Your responsibility
+Vendor's responsibility
+Risk
+Delivery risk — needs a competent developer and a clear spec (this document)
+Lock-in and roadmap risk — you cannot change what it does not do
+3.3  Recommendation
+Build. The deciding factor is not the money, though the money favours building from about month fourteen onward and permanently thereafter. It is that the manager's core requirement — a leaderboard of salespeople against monthly targets, per shop and chain-wide — is the one thing none of the packaged products does. Buying means paying USD 12,000 a year and still building a reporting layer on exported data.
+There is one scenario where buying wins outright: if the chain needs something running within two weeks, or if there is no developer available to own the system. In that case, deploy Loyverse now, run it for a season, and use the real usage data to specify the custom build properly. Nothing in this blueprint is wasted by that sequence — the data model in Section 6 maps cleanly onto a Loyverse export.
+
+4.  Recommended architecture
+4.1  Shape of the system
+Layer
+Choice
+Why
+Salesperson app
+Installable PWA (Progressive Web App) — a web link she adds to her home screen
+No app store, no install friction, no separate iOS/Android builds, and updates reach every phone instantly. Camera barcode scanning works in mobile browsers over HTTPS.
+Manager app
+Responsive web dashboard, same codebase
+Managers use laptops and phones interchangeably. One codebase, two role-driven interfaces.
+Front-end framework
+Next.js (React) with TypeScript
+Mature, widely known, server-rendered for fast first load on 4G, excellent PWA support. Easy to hire for.
+Barcode scanning
+Browser camera via ZXing or html5-qrcode
+Reads EAN-13, UPC-A and Code-128 from the phone camera. No hardware scanners required, though USB/Bluetooth scanners work too where a shop prefers them (they type as a keyboard).
+Back end
+Node.js API (or Next.js server routes) over PostgreSQL
+Relational integrity matters here: stock, sales and attribution must never drift. Postgres handles the reporting workload comfortably at this scale.
+Database & auth platform
+Supabase or a managed Postgres (Neon, RDS) with a Node auth layer
+Supabase gives Postgres, authentication and row-level security in one managed service, which removes weeks of work. A plain managed Postgres is equally valid if you prefer no platform dependency.
+Hosting
+Vercel / Railway / any container host, single region
+All shops are in one country; a single region keeps latency low and cost near nothing.
+Reporting
+Nightly aggregation into summary tables + live queries for today
+Keeps dashboards instant as the sales table grows into millions of rows. Details in Section 9.4.
+4.2  Why a PWA and not a native app
+	•	Zero distribution cost. A new salesperson is onboarded by sending her a link and a PIN, not by walking her through an app store.
+	•	Instant updates. A pricing or catalogue fix reaches every shop on the next page load — no version fragmentation across 100 phones.
+	•	Camera access is sufficient. Modern mobile browsers scan retail barcodes reliably; the limitation is lighting and label quality, not the technology.
+	•	The trade-off: a PWA cannot use a phone's native scanner hardware acceleration and has weaker offline storage guarantees. Neither matters given the "good connectivity, online-only" requirement — and if offline becomes necessary, the same codebase can be wrapped with Capacitor rather than rewritten.
+4.3  Data flow of a single sale
+	•	Salesperson opens the app; her session already carries her user ID and the shop she is assigned to today.
+	•	She scans a barcode. The client looks it up against a locally cached catalogue index, so the item appears instantly; if the barcode is unknown it falls back to a server lookup, then to manual search.
+	•	Items accumulate in a basket with quantities. The app shows current stock on hand per item as an advisory figure.
+	•	She presses Confirm. A single API call posts the whole basket with an idempotency key so a double-tap or a retried request cannot create two sales.
+	•	The server writes, in one database transaction: the sale header, the sale lines, one stock movement per line, and the updated stock cache. Either all of it lands or none of it does.
+	•	The manager dashboard, polling or subscribed to live updates, reflects the sale within seconds.
+
+5.  Roles and permissions
+Four roles cover the chain. Every permission is enforced on the server, not only hidden in the interface — a salesperson who tampers with the client still cannot read another shop's data.
+Role
+Who
+Scope
+Salesperson
+The girls in the shops
+Her own sales, in her own shop, for the current and previous month
+Shop supervisor
+Shop lead / senior staff
+Everything within her own shop
+Area manager
+Manages a group of shops
+All assigned shops, read-mostly
+Administrator
+Owner / operations manager / head office
+Entire chain, all settings
+5.1  Permission matrix
+Capability
+Sales-
+person
+Shop
+supervisor
+Area
+manager
+Admin
+Record a sale under own name
+Yes
+Yes
+No
+No
+Record a sale on behalf of another salesperson
+No
+Yes (logged)
+No
+Yes (logged)
+View own sales and own statistics
+Yes
+Yes
+Yes
+Yes
+View colleagues' individual figures
+Rank only
+Yes, own shop
+Yes, own shops
+Yes, all
+View shop leaderboard
+Own shop
+Own shop
+Own shops
+All shops
+View chain-wide dashboard
+No
+No
+Own shops
+Yes
+Apply a discount
+Up to set limit
+Up to higher limit
+n/a
+Unlimited
+Void or return a sale
+Request only
+Approve, own shop
+Approve
+Approve
+Enter stock received
+No
+Yes, own shop
+Yes
+Yes
+Perform a stock count / adjustment
+No
+Yes, own shop
+Yes
+Yes
+Create or edit products and prices
+No
+No
+No
+Yes
+Set monthly targets
+No
+No
+Propose
+Yes
+Create users, assign to shops
+No
+No
+No
+Yes
+Export data / view audit log
+No
+Own shop
+Own shops
+Yes
+
+A deliberate design choice about visibility
+A salesperson sees her own numbers and her rank, but not her colleagues' individual figures. Full transparency between peers tends to raise competition and complaints in equal measure; rank-only visibility keeps the motivating part without the friction. This is a single configuration flag — if you want full transparency within a shop, it can be turned on per shop.
+
+6.  Data model
+Sixteen tables carry the whole system. The organising principle is that sales and stock movements are an append-only ledger: nothing is ever edited or deleted, only reversed. This is what makes the numbers trustworthy months later, and it is what makes fraud visible.
+6.1  Core entities
+Table
+Holds
+Key points
+shop
+One row per shop
+Code, name, address, city, opening date, active flag. Never delete a closed shop — deactivate it, so its history survives.
+app_user
+Every person who logs in
+Name, phone (the login identifier), PIN hash, role, active flag. Deactivating replaces deletion.
+user_shop
+Which person works in which shop, and when
+A join table with start and end dates. This is what lets a salesperson transfer between shops in March without corrupting her January figures.
+brand
+Brands carried
+Cosmetics reporting is heavily brand-driven; brand is a first-class dimension, not a text field.
+category
+Category tree
+Self-referencing parent, e.g. Face → Foundation. Two levels is usually enough.
+product
+The product concept
+Name, brand, category, description, active flag. "Velvet Matte Lipstick" is one product.
+variant
+The thing actually sold
+Shade or size, own SKU, own price, own stock. "Velvet Matte Lipstick — Shade 04" is a variant. Everything downstream references variant, never product.
+variant_barcode
+Barcodes for a variant
+One variant may legitimately have several barcodes (supplier changes, re-imports, own printed labels). Modelled as a separate table so all of them scan correctly.
+price_history
+Price changes over time
+Lets you answer "what did it cost in April?" and prevents a price change from silently rewriting last month's revenue.
+6.2  Transactional entities
+Table
+Holds
+Key points
+sale
+One row per completed sale
+Shop, salesperson, business date, timestamp, totals, status (completed / voided / returned), and the device and approximate location it was recorded from.
+sale_line
+One row per item in a sale
+Variant, quantity, unit price, discount, line total, and the cost price copied in at the moment of sale so that margin reporting stays correct after future cost changes.
+stock_movement
+The stock ledger
+Every change of quantity, with type (stock-in, sale, return, adjustment, count, write-off), signed quantity, reference to the source record, who did it and when. Append-only.
+stock_level
+Current quantity per shop per variant
+A derived cache for speed, rebuildable at any moment by summing the ledger. If cache and ledger ever disagree, the ledger wins.
+target
+Monthly targets
+Scoped to a salesperson or a whole shop, per month, in value and/or units. Drives the attainment column on the leaderboard.
+audit_log
+Who changed what
+Actor, action, entity, before and after values, timestamp, IP. Written for every void, price change, stock adjustment, target change and permission change.
+6.3  The relationships that matter most
+	•	sale → app_user and sale → shop are both mandatory and immutable. This is the attribution guarantee. Neither field can be updated after insert; a mistake is corrected by voiding and re-entering, which leaves a trail.
+	•	sale_line → variant, not product. Shade-level data is what makes product performance reporting useful in cosmetics. Rolling up to product or brand is a query; splitting back down later is impossible.
+	•	stock_movement is the source of truth, stock_level is convenience. A nightly job re-derives every stock level from the ledger and reports any discrepancy. This one job catches most classes of bug before they become an argument with a shop.
+	•	user_shop is date-ranged. Reports resolve which shop a sale belonged to from the sale itself, never from the salesperson's current shop — otherwise transferring one person rewrites history across two shops.
+6.4  Indexes that the reports depend on
+	•	sale (shop_id, business_date) — the daily shop dashboard
+	•	sale (salesperson_id, business_date) — the leaderboard and individual profiles
+	•	sale_line (variant_id) and sale_line (sale_id) — product performance
+	•	stock_movement (shop_id, variant_id, created_at) — ledger reconstruction
+	•	variant_barcode (barcode) unique — scan lookup must be a single indexed hit
+The full SQL sketch is in Appendix A.
+
+7.  Product catalogue and barcode strategy
+This is the part that sinks projects like this
+The software is straightforward. Getting a clean catalogue of every shade of every product, each with a working barcode and a correct price, across 20+ shops, is the hard part — and it has to be largely done before the first shop can go live. Budget real time and a named owner for it. Everything else in this plan is on schedule only if this is.
+7.1  Three kinds of item, three treatments
+Situation
+Approach
+Item has a manufacturer barcode (EAN-13 / UPC-A) and it is on the packaging
+Scan it once during catalogue setup to bind the barcode to the variant. Nothing further needed — this should cover the majority of branded cosmetics.
+Item has no barcode, or the barcode is on packaging that is discarded / on a tester
+Print your own labels. Generate an internal barcode per variant (Code-128 over the SKU), print on a thermal label printer, apply once at goods-in. One label printer per shop, or centrally before distribution.
+Item that cannot practically carry a label (small testers, loose items, gift-with-purchase)
+Sold via search or the visual grid. The interface treats this as a first-class path, not a fallback — a category grid with product photos is often faster than scanning for a salesperson who knows the range.
+7.2  Making search fast enough to beat scanning
+	•	The catalogue is cached in the phone's browser on first load and refreshed in the background, so search results appear as the salesperson types with no network round-trip.
+	•	Search matches on product name, brand, shade name, shade number and SKU simultaneously — a salesperson thinks "Ruby 04", not "SKU-88213".
+	•	A recently-sold and a most-sold shortlist per shop sits at the top of the sell screen. In practice a small number of SKUs drive most transactions, and one tap should cover them.
+	•	Product photos matter. Cosmetics are chosen visually; a grid of swatches is faster and less error-prone than a list of names. Budget for photographing the range, or source images from suppliers.
+7.3  Catalogue setup checklist (before Phase 1 ends)
+	•	Export whatever product list exists today — supplier invoices, spreadsheets, the old till — into one file.
+	•	Deduplicate to product level, then expand to variant level with every shade and size.
+	•	Assign brand and category to every variant. No blanks — an "Uncategorised" bucket destroys the product performance report.
+	•	Capture or verify the barcode for each variant; mark those needing printed labels.
+	•	Set the current selling price and the cost price for each variant.
+	•	Take an opening stock count per shop per variant on a single agreed day. This is the zero point for all stock figures — do it properly once rather than correcting it forever.
+
+8.  Screens and user flows
+8.1  Salesperson app — six screens, one thumb
+Designed to be used standing up, one-handed, while a customer waits. Nothing requires a second tap that a default could have made. The whole sale should take under fifteen seconds.
+Screen
+Contents
+Notes
+1. Login
+Phone number + 4–6 digit PIN. "Remember me" for 30 days.
+Session bound to her assigned shop for the day. No password resets by email — a supervisor re-issues the PIN.
+2. Home
+Today: her revenue, her units, her rank in the shop. A progress ring for the month against target. One large SELL button.
+This is the motivation screen. She should want to open it. Keep it to four numbers and a button.
+3. Sell
+Full-width SCAN button opening the camera; search bar; recently-sold shortcuts; category grid with photos.
+Scanning adds straight to the basket with quantity 1 and stays in camera mode for the next item — most baskets are multi-item.
+4. Basket
+Line items with quantity steppers, stock-on-hand advisory, discount field (if permitted), running total, CONFIRM.
+Discount is hidden entirely for staff with no discount allowance. Confirm is a single, unmistakable action.
+5. Confirmation
+Sale number, total, "Sold by [her name]", and her updated day total.
+Two seconds of feedback that the sale landed and it counted for her. Then straight back to Sell.
+6. My sales
+Her sales for today and this month; tap to view lines; "request void" on each.
+Read-only history plus the correction path. Voids go to the supervisor for approval.
+8.2  Manager dashboard — seven views
+View
+Answers the question
+Live chain dashboard
+"How are we doing right now?" Today's revenue and units chain-wide, a tile per shop with its figure and change vs. the same day last week, an hourly trend line, and the top three salespeople of the day.
+Shop drill-down
+"How is this shop doing, and who is carrying it?" A table of every salesperson in the shop — revenue, units, average basket value, items per basket, target attainment — over any chosen period.
+Leaderboard
+"Who is performing, across the chain?" Ranked list, filterable by period and shop, sortable by revenue, units or percentage of target. Fair comparison requires the target column: the girl in the small shop who hits 130% deserves to outrank the one in the flagship who hits 80%.
+Salesperson profile
+"Is this person improving or slipping?" Her monthly trend, her best-selling products, her average basket versus the shop average, and her void and discount rate.
+Product performance
+"What should we buy more of?" Best and worst sellers by units and by value, sliced by shop, brand and category, plus a dead-stock list of items with stock on hand and no sale in N days.
+Stock
+"What do we have, and where?" Stock on hand per shop, low-stock alerts against a per-variant reorder point, and the stock-in screen (manual entry or CSV import).
+Admin
+Users and shop assignments, product and price maintenance, monthly target setting, discount limits, and the audit log.
+8.3  Interface principles
+	•	Every figure on a manager screen is clickable down to the underlying sales. A number that cannot be interrogated will eventually be disbelieved.
+	•	Every view has a date-range selector with sensible presets — today, yesterday, this week, this month, last month — and every export carries the range in its filename.
+	•	Comparison is always present. A revenue figure alone means nothing; against yesterday, last week and target it means everything.
+	•	The salesperson app and the manager app share components but never share screens. A salesperson should never see an interface element she cannot use.
+
+9.  Reporting and metrics
+9.1  Metric definitions
+Agree these definitions before the build starts. Most disputes about a sales system are disputes about a definition, not a bug.
+Metric
+Definition
+Revenue
+Sum of line totals after discount, for sales with status = completed. Voided sales are excluded entirely; returns subtract in the period the return happened, not the period of the original sale.
+Units
+Sum of quantities on completed sale lines.
+Average basket value
+Revenue ÷ number of completed sales.
+Items per basket
+Units ÷ number of completed sales. The clearest single measure of whether someone is upselling.
+Target attainment
+Revenue ÷ monthly target, as a percentage. Pro-rated by elapsed days when viewing a month in progress, so mid-month figures are meaningful.
+Business day
+The trading day a sale is attributed to, using an agreed cut-off (e.g. 06:00–06:00) so a sale rung at 23:50 falls on the right day. Stored on the sale row at insert time, never computed at report time.
+Dead stock
+A variant with stock on hand greater than zero and no sale in that shop for N days (default 60, configurable).
+Margin
+Revenue minus cost price captured at the moment of sale. Available only if cost prices are maintained — recommended, but not a blocker.
+9.2  Standard reports at launch
+	•	Daily sales by shop — revenue, units, transactions, average basket, versus yesterday and versus the same weekday last week.
+	•	Salesperson leaderboard — any period, any shop or all shops, with target attainment.
+	•	Salesperson detail — daily trend, product mix, discount rate, void rate.
+	•	Product performance — by units and value, sliced by shop, brand and category, with rank movement versus the previous period.
+	•	Stock on hand and low-stock alert list, per shop.
+	•	Dead stock list, per shop.
+	•	Void and discount exception report — every void, every above-average discount, with who and why.
+9.3  Exports
+Every report exports to Excel and PDF with one click. This matters more than it sounds: the month-end conversation with the shops will happen over a spreadsheet, and if the system cannot produce it, someone will rebuild it by hand and the numbers will diverge.
+9.4  Keeping dashboards fast
+At 20+ shops the sales table grows by roughly one to two million lines a year. Querying it directly for a dashboard is fine in month one and painful in year two. The design handles this from the start:
+	•	A nightly job aggregates each closed business day into summary tables — by shop, by salesperson, by variant, by day.
+	•	Historical reports read the summary tables and are effectively instant regardless of date range.
+	•	Today's figures are queried live from the sales table, which is small enough to be fast, and merged with the summaries.
+	•	Summaries are always rebuildable from the ledger, so a bug in aggregation is a re-run, not a data loss.
+
+10.  Business rules, integrity and anti-fraud controls
+Because the system sits alongside the till rather than replacing it, its integrity depends on rules and visibility rather than on physical control of the cash. The following are the controls worth building.
+10.1  Immutability and correction
+	•	A confirmed sale is never edited. Corrections are made by voiding the sale and entering a new one, or by recording a return — both create their own records.
+	•	A salesperson may request a void; a supervisor approves it. Voids after the same business day require an area manager or admin.
+	•	Every void carries a reason from a short fixed list (wrong item, wrong quantity, customer changed mind, entered under wrong person, price error) plus optional free text.
+	•	A return reverses stock and revenue on the date of the return, referencing the original sale where known.
+10.2  Attribution rules
+	•	One sale belongs to exactly one salesperson. Split attribution is deliberately not supported — it doubles the reporting complexity and, in practice, invites negotiation over every basket.
+	•	A supervisor may record a sale on behalf of a salesperson (she is on break, her phone is dead). The sale is attributed to the salesperson and flagged as entered-by-supervisor, and both names appear in the audit log.
+	•	The shop on the sale comes from the salesperson's active shop assignment at that moment, and is frozen on the record.
+10.3  Detecting the things that will actually go wrong
+Risk
+Control
+Sales not recorded at all (the biggest risk in an attribution-only system)
+Daily reconciliation: a supervisor enters the till's day total, and the system shows the variance against recorded sales. A shop with a persistent gap is visible within a week. Optionally add stock-count variance as a second signal.
+Sales recorded under the wrong person
+Personal logins with PINs, sessions that expire, and a void reason specifically for mis-attribution so the frequency is measurable rather than invisible.
+PIN sharing between staff
+One active session per user; a login from a new device notifies the supervisor. Optional: an approximate location check at confirm time flags sales recorded away from the shop.
+Discount abuse
+A per-role discount ceiling enforced on the server, plus an exception report of every discount above the norm, reviewed weekly.
+Padding then voiding to inflate day figures
+Voids are counted per salesperson and shown on her profile. A rising void rate is the signal to look at.
+Stock drift
+Nightly ledger-versus-cache reconciliation, plus periodic physical counts recorded as adjustments with the variance visible per shop.
+Double submission from a flaky connection
+Idempotency key on the sale creation call — a retried request returns the original sale rather than creating a second.
+10.4  Making the team want to use it
+Every control above is defensive. The system will only produce clean data if the sales team finds it worth opening, so three things are worth building for their sake rather than management's:
+	•	Her own numbers, live, on the home screen — most people check their own performance more often than a manager ever will.
+	•	Her rank and her progress against target, updated as she sells.
+	•	Speed. If recording a sale takes longer than fifteen seconds during a busy Saturday, it will not be recorded on busy Saturdays, and those are the days that matter.
+
+11.  Non-functional requirements
+Area
+Requirement
+Performance
+Sell screen interactive within 2 seconds on 4G. Barcode-to-basket under 1 second. Sale confirmation under 2 seconds. Any manager report under 3 seconds for any date range.
+Availability
+99.5% during trading hours. A shop that cannot record sales for an hour is a real operational problem, so the deployment should be redundant and monitored with alerting to a named person.
+Scale headroom
+Design for 3× the current chain — 60 shops, 300 users, 5 million sale lines — without architectural change.
+Security
+HTTPS everywhere (also a hard requirement for camera access). PINs hashed with bcrypt or argon2, never stored or logged. Row-level authorisation on every query. Rate limiting on login. Sessions expiring after a configurable idle period.
+Privacy
+The system stores staff performance data, which is personal data. Access is limited by role, the audit log records who viewed exports, and a retention policy should be agreed (recommended: sales data indefinitely, session and location logs 90 days).
+Backups
+Automated daily backups with point-in-time recovery, retained 30 days, and a restore tested at least once before go-live. An untested backup is not a backup.
+Localisation
+Interface in the language the sales team actually uses — worth confirming early, as right-to-left layout is much cheaper to design in than to retrofit. Single currency and single timezone as specified.
+Accessibility
+Large touch targets, high contrast, and readable type. Shops are brightly lit and staff are often looking at a phone at arm's length.
+Auditability
+Every privileged action logged with actor, timestamp, before and after values, retained for at least two years.
+
+12.  Phased delivery plan
+Eleven weeks from start to full rollout, with a live pilot in week 5. The sequence is deliberate: prove the sell flow with real staff in two shops before building the reporting depth, because the sell flow is the only part that can fail in a way that stops the business.
+Phase
+Weeks
+Delivered
+Exit criterion
+0 — Data preparation
+1
+Catalogue consolidated to variant level with brands, categories, barcodes, prices and cost prices. Shop list and staff list confirmed. Label-printing decision made. Opening stock count scheduled.
+A clean catalogue file signed off by operations. This phase can run in parallel with early development, but it must not slip.
+1 — Core sell flow (MVP)
+2–5
+Authentication and roles. Catalogue and search. Barcode scanning. Sell, basket, confirm. Sale ledger. Basic manager view of sales by shop and by person. Stock decrement.
+Two pilot shops recording every sale through the system for a full week, with the day total reconciling against the till.
+2 — Stock and performance
+6–8
+Stock-in (manual and CSV import). Stock levels, low-stock and dead-stock alerts. Returns and void approval workflow. Monthly targets. Leaderboard with attainment. Product performance report. Exports.
+Managers running the month-end review entirely from the system, with no parallel spreadsheet.
+3 — Rollout and hardening
+9–11
+Roll out shop by shop with training. Opening stock counts per shop. Reconciliation report. Exception reports. Performance tuning and summary aggregation. Monitoring and backup verification.
+All shops live, all staff onboarded, one clean month-end closed from the system.
+4 — Later, on demand
+Post-launch
+Commission engine on top of the target data. Offline mode. Shop-to-shop transfers with confirmation. Customer capture and loyalty. Accounting export. Supplier purchase orders.
+Prioritised once the chain has three months of real data to argue from.
+12.1  Rollout mechanics
+	•	Two shops first, chosen for a cooperative supervisor rather than for size. Then four, then the rest in waves of five or six.
+	•	Each wave needs an opening stock count on the day it goes live, and someone present in the shop for the first two trading days.
+	•	Training is fifteen minutes per salesperson. If it needs more than that, the interface is wrong and should be fixed rather than trained around.
+	•	A one-page laminated card per shop, and a WhatsApp group with a named person who answers during trading hours for the first month.
+	•	Run the old method in parallel for exactly one week per shop — long enough to catch problems, short enough that nobody settles back into it.
+
+13.  Effort and cost estimate
+13.1  Build effort
+Work package
+Developer-days
+Project setup, environments, CI, authentication and role framework
+6–8
+Catalogue: products, variants, barcodes, prices, admin screens, import
+8–10
+Salesperson app: scanning, search, basket, confirm, my-sales
+12–15
+Sales and stock ledger, transactional integrity, voids and returns
+7–9
+Stock-in, stock levels, counts, alerts
+5–7
+Manager dashboard, drill-downs, leaderboard, targets
+10–13
+Product performance and exports
+4–6
+Reconciliation, exception reports, audit log
+3–4
+Testing, performance tuning, deployment, monitoring
+6–8
+TOTAL
+61–80 developer-days
+
+Roughly three months of one experienced full-stack developer, or about seven weeks with two. Add 15–20% if a designer is not involved and the developer must also design; add a similar margin if the catalogue data arrives incomplete, which it usually does.
+13.2  Running cost
+Item
+Monthly
+Managed Postgres + auth (Supabase Pro or equivalent)
+USD 25–60
+Application hosting
+USD 20–60
+Backups, monitoring, error tracking
+USD 10–40
+Domain, SSL, transactional messaging (PIN resets)
+USD 5–20
+TOTAL
+USD 60–180 per month, flat regardless of shop or staff count
+13.3  Costs that are easy to forget
+	•	Label printers and label stock, if internal barcodes are needed — roughly USD 150–300 per printer, one per shop or a few centrally.
+	•	Product photography for the visual grid, unless supplier images are usable.
+	•	The staff time for opening stock counts across every shop — this is the largest hidden cost in the whole project.
+	•	Ongoing maintenance after launch. Budget two to four developer-days a month for fixes, small changes and support, or the system slowly rots.
+
+14.  Risks and mitigations
+Risk
+Impact
+Mitigation
+Staff simply do not record sales, especially when busy
+High — the data becomes worthless and the project fails quietly
+Fifteen-second sell flow; her own live numbers and rank as the reward; daily till reconciliation so gaps are visible within days; supervisor accountability for her shop's variance
+Catalogue data is incomplete or wrong at go-live
+High — scanning fails, staff lose confidence in week one
+Phase 0 with a named owner and a hard exit criterion; pilot in two shops before any wider rollout; an "unknown barcode" capture flow so a miss is logged and fixed rather than blocking the sale
+Opening stock counts are inaccurate
+Medium — stock figures are wrong from day one and stay wrong
+Count on a closed day or before opening; count in pairs; treat the first month's figures as provisional and re-count the top-selling SKUs after 30 days
+Staff resistance — the system is seen as surveillance
+Medium — quiet non-compliance is hard to detect and harder to fix
+Introduce it as the basis for recognition and future commission, not monitoring. Show the leaderboard to the team. Involve two supervisors in the pilot design so it arrives with internal advocates
+Phone diversity — old handsets, poor cameras
+Medium — scanning fails for a minority of staff
+Search and the visual grid as a fully equivalent path, not a fallback. A cheap shared shop phone or a USB scanner for the handful of cases that need it
+Key-person dependency on one developer
+Medium — maintenance stalls if they leave
+Conventional stack chosen for hireability; this document plus code comments and a written handover as a contractual deliverable; code in a repository owned by the business, not the developer
+Scope creep toward a full POS
+Medium — an 11-week project becomes a 9-month one
+Payment, receipts and cash handling are explicitly out of scope for Phases 1–3. Revisit only after one clean month-end
+
+15.  Decisions still open
+Seven questions remain. None blocks starting Phase 0, and all should be answered before Phase 1 ends.
+#
+Decision
+Why it matters
+1
+Should the system eventually become the till (full POS), or stay alongside it permanently?
+Determines whether recording a sale is optional forever. If the answer is "eventually", the data model should reserve room for payments now — cheap today, expensive later.
+2
+Interface language, and is right-to-left layout needed?
+Retrofitting RTL is several days of rework. Deciding in week one costs nothing.
+3
+What is the till reconciliation process today, and who owns the variance?
+The daily reconciliation control in Section 10.3 only works if a named person acts on it.
+4
+Are cost prices available and maintained?
+Without them there is no margin reporting — which is usually the report management wants third, after revenue and leaderboard.
+5
+Do shops need to see each other's figures?
+Affects both the permission model and the internal politics of launch.
+6
+Who owns the catalogue going forward?
+A product catalogue without a permanent owner degrades within months, and every report degrades with it.
+7
+Commission model, even in outline
+The target data is being captured from day one. Knowing roughly how commission will eventually be calculated ensures the right things are stored now.
+Immediate next steps
+	•	Confirm or correct the requirements in Section 2.
+	•	Decide build vs. buy on the basis of Section 3 — and be honest about developer availability, because that is the real deciding factor.
+	•	Appoint the catalogue owner and start Phase 0 this week; it is on the critical path regardless of which route is chosen.
+	•	Pick two pilot shops and brief their supervisors.
+	•	Answer the seven open decisions above.
+
+Appendix A — Core database schema
+A PostgreSQL sketch of the essential tables. Indexes, constraints and audit columns are abbreviated for readability; the intent is to show shape and relationships, not to be pasted into production.
+-- ---------- organisation ----------
+shop            (id, code, name, city, address, is_active, opened_on)
+app_user        (id, full_name, phone UNIQUE, pin_hash, role, is_active,
+                 created_at, last_login_at)
+user_shop       (id, user_id -> app_user, shop_id -> shop,
+                 start_date, end_date NULL, is_primary)
+ 
+-- ---------- catalogue ----------
+brand           (id, name UNIQUE, is_active)
+category        (id, name, parent_id -> category NULL)
+product         (id, code, name, brand_id -> brand,
+                 category_id -> category, is_active)
+variant         (id, product_id -> product, sku UNIQUE,
+                 shade_name, shade_code, size_label,
+                 price NUMERIC(12,2), cost_price NUMERIC(12,2),
+                 reorder_point INT, image_url, is_active)
+variant_barcode (id, variant_id -> variant, barcode UNIQUE, is_primary)
+price_history   (id, variant_id -> variant, price, cost_price,
+                 valid_from, valid_to NULL, changed_by -> app_user)
+ 
+-- ---------- sales ledger (append-only) ----------
+sale            (id, sale_no UNIQUE, shop_id -> shop,
+                 salesperson_id -> app_user,
+                 entered_by_id -> app_user,        -- differs only for
+                                                   -- supervisor entry
+                 business_date DATE,               -- frozen at insert
+                 sold_at TIMESTAMPTZ,
+                 subtotal, discount_total, total NUMERIC(12,2),
+                 status TEXT,   -- completed | voided | returned
+                 void_reason, voided_by -> app_user, voided_at,
+                 idempotency_key UNIQUE, device_hash, geo_lat, geo_lng)
+ 
+sale_line       (id, sale_id -> sale, variant_id -> variant,
+                 qty INT, unit_price, discount, line_total,
+                 cost_price_at_sale)               -- copied, not joined
+ 
+-- ---------- stock ----------
+stock_movement  (id, shop_id -> shop, variant_id -> variant,
+                 qty_delta INT,                    -- signed
+                 movement_type TEXT,  -- stock_in | sale | return
+                                      -- adjustment | count | write_off
+                 ref_type TEXT, ref_id UUID,
+                 created_by -> app_user, created_at, note)
+ 
+stock_level     (shop_id, variant_id, qty_on_hand, updated_at,
+                 PRIMARY KEY (shop_id, variant_id))   -- derived cache
+ 
+-- ---------- performance ----------
+target          (id, period_month DATE,
+                 shop_id -> shop NULL, user_id -> app_user NULL,
+                 target_value NUMERIC(12,2), target_units INT,
+                 set_by -> app_user, set_at)
+ 
+daily_summary   (business_date, shop_id, user_id, variant_id,
+                 revenue, units, sale_count,
+                 PRIMARY KEY (business_date, shop_id, user_id, variant_id))
+ 
+-- ---------- governance ----------
+audit_log       (id, actor_id -> app_user, action, entity, entity_id,
+                 before JSONB, after JSONB, ip, created_at)
+ 
+-- ---------- indexes the reports rely on ----------
+sale            (shop_id, business_date)
+sale            (salesperson_id, business_date)
+sale_line       (variant_id)
+stock_movement  (shop_id, variant_id, created_at)
+variant_barcode (barcode) UNIQUE
+
+Appendix B — API surface
+The endpoints the front end needs. Every one is authorised server-side against the caller's role and shop scope.
+Salesperson
+Endpoint
+Purpose
+POST /auth/login
+Phone + PIN, returns a session bound to user and active shop
+GET /catalogue/sync
+Full or delta catalogue for local caching (variants, barcodes, prices, images)
+GET /lookup/barcode/:code
+Server-side fallback when a scanned barcode is not in the local cache
+GET /stock/:shopId
+Current stock levels for the advisory display
+POST /sales
+Create a sale with all lines, carrying an idempotency key
+GET /sales/mine
+Her own sales, filtered by period
+POST /sales/:id/void-request
+Request a void with a reason
+GET /me/stats
+Today's revenue, units, rank, and month-to-date target attainment
+Manager and administrator
+Endpoint
+Purpose
+GET /dashboard/live
+Chain and per-shop figures for today, with comparisons
+GET /reports/leaderboard
+Ranked salespeople for a period and scope, with attainment
+GET /reports/shop/:id
+Shop drill-down with every salesperson's metrics
+GET /reports/salesperson/:id
+Individual trend, product mix, discount and void rates
+GET /reports/products
+Product performance by units and value, sliced and ranked
+GET /reports/dead-stock
+Items with stock and no movement in N days
+GET /reports/exceptions
+Voids and above-threshold discounts for review
+POST /stock/stock-in
+Record received quantities for a shop (manual or CSV)
+POST /stock/count
+Record a physical count and generate the adjustment movements
+POST /sales/:id/void
+Approve a void
+POST /sales/:id/return
+Record a return against a sale
+POST /targets
+Set or update monthly targets by shop or person
+POST /reconciliation
+Enter the till day total and return the variance
+CRUD /admin/users, /admin/shops, /admin/products, /admin/variants
+Master data maintenance
+GET /export/:report
+Excel or PDF export of any report for a date range
+
+End of blueprint — v1.0, 13 August 2026

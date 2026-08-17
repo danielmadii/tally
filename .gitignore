@@ -39,3 +39,10 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Local Supabase runtime files
+supabase/.temp/
+
+# Business data files — import via the app, do not commit
+*.xlsx
+*.xls
