@@ -92,6 +92,7 @@ export default async function ShopsPage() {
                     name: shop.name,
                     city: shop.city,
                     address: shop.address,
+                    isActive: shop.isActive,
                   }}
                 />
               )}

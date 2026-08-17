@@ -11,6 +11,7 @@ export interface EditableShop {
   name: string;
   city: string | null;
   address: string | null;
+  isActive?: boolean;
 }
 
 /**
@@ -42,6 +43,35 @@ export default function EditShopButton({
     setForm({ name: shop.name, city: shop.city ?? "", address: shop.address ?? "" });
     setError(null);
     setOpen(true);
+  }
+
+  async function act(
+    method: "PATCH" | "DELETE",
+    body?: Record<string, unknown>,
+    confirmText?: string
+  ) {
+    if (busy) return;
+    if (confirmText && !window.confirm(confirmText)) return;
+    setBusy(true);
+    setError(null);
+    try {
+      const res = await fetch(`/api/admin/shops/${shop.id}`, {
+        method,
+        ...(body
+          ? { headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }
+          : {}),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data.error ?? "Could not complete that");
+        return;
+      }
+      setOpen(false);
+      queryClient.invalidateQueries({ queryKey: ["admin-shops"] });
+      router.refresh();
+    } finally {
+      setBusy(false);
+    }
   }
 
   async function save(e: React.FormEvent) {
@@ -151,6 +181,31 @@ export default function EditShopButton({
               </button>
               <button type="submit" disabled={busy} className="btn btn-primary">
                 {busy ? "Saving…" : "Save changes"}
+              </button>
+            </div>
+
+            <div className="mt-6 flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 pt-4">
+              <button
+                type="button"
+                disabled={busy}
+                onClick={() => act("PATCH", { isActive: shop.isActive === false })}
+                className="text-xs font-medium text-slate-500 hover:text-slate-800"
+              >
+                {shop.isActive === false ? "Reactivate shop" : "Deactivate shop"}
+              </button>
+              <button
+                type="button"
+                disabled={busy}
+                onClick={() =>
+                  act(
+                    "DELETE",
+                    undefined,
+                    `Delete ${shop.name}? This only works while the shop has no sales.`
+                  )
+                }
+                className="text-xs font-medium text-red-600 hover:text-red-700"
+              >
+                Delete shop
               </button>
             </div>
           </form>

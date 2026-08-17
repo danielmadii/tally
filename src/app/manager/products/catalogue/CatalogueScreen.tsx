@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { fmtMoney } from "@/lib/format";
-import ImportPanel from "./ImportPanel";
+import ImportPanel from "@/components/ImportPanel";
 import BarcodeView from "@/components/BarcodeView";
 
 interface VariantRow {
@@ -39,7 +39,7 @@ const emptyVariant = (): NewVariant => ({
   barcode: "",
 });
 
-export default function CatalogueTab() {
+export default function CatalogueScreen() {
   const queryClient = useQueryClient();
   const [message, setMessage] = useState<string | null>(null);
   const [filter, setFilter] = useState("");
@@ -98,6 +98,18 @@ export default function CatalogueTab() {
       delete next[v.id];
       return next;
     });
+  }
+
+  async function deleteVariant(v: VariantRow) {
+    if (!window.confirm(`Delete ${v.sku}? This only works while it has never been sold.`)) return;
+    setMessage(null);
+    const res = await fetch(`/api/admin/variants/${v.id}`, { method: "DELETE" });
+    const data = await res.json();
+    setMessage(res.ok ? `${v.sku} deleted.` : data.error ?? "Failed");
+    if (res.ok) {
+      queryClient.invalidateQueries({ queryKey: ["admin-catalogue"] });
+      queryClient.invalidateQueries({ queryKey: ["catalogue"] });
+    }
   }
 
   function addBarcode(v: VariantRow) {
@@ -331,9 +343,12 @@ export default function CatalogueTab() {
                           v.isActive ? `${v.sku} deactivated` : `${v.sku} reactivated`
                         )
                       }
-                      className={v.isActive ? "text-red-600" : "text-green-700"}
+                      className={v.isActive ? "text-slate-500" : "text-green-700"}
                     >
                       {v.isActive ? "Deactivate" : "Reactivate"}
+                    </button>
+                    <button onClick={() => deleteVariant(v)} className="text-red-600">
+                      Delete
                     </button>
                   </div>
                 </td>

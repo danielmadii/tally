@@ -4,6 +4,7 @@ import { requireSession } from "@/lib/server/session";
 import { db } from "@/lib/server/supabase";
 import { getProductPerformance, getDeadStock } from "@/lib/server/queries";
 import { fmtMoney, fmtInt } from "@/lib/format";
+import ProductsTabs from "./ProductsTabs";
 
 export const dynamic = "force-dynamic";
 
@@ -35,9 +36,9 @@ export default async function ProductsPage({
     <div>
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="page-title">Product performance — this month</h1>
+          <h1 className="page-title">Products</h1>
           <p className="page-desc">
-            {shopName ? `Sales and stock for ${shopName}` : "Sales across all shops"}
+            {shopName ? `How ${shopName} is selling this month` : "How the chain is selling this month"}
           </p>
         </div>
         {/* eslint-disable-next-line @next/next/no-html-link-for-pages -- CSV download, not a navigation */}
@@ -46,6 +47,8 @@ export default async function ProductsPage({
           Export CSV
         </a>
       </div>
+
+      <ProductsTabs adminOnly={session.role === "admin"} />
 
       {session.role !== "supervisor" && (
         <div className="mt-4 flex gap-2 overflow-x-auto pb-1">

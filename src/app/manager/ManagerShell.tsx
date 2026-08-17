@@ -8,6 +8,7 @@ import {
   LayoutDashboard,
   Store,
   Package,
+  UsersRound,
   ClipboardCheck,
   Calculator,
   Settings,
@@ -29,10 +30,14 @@ interface NavItem {
 const NAV: { section: string; items: NavItem[] }[] = [
   {
     section: "Overview",
+    items: [{ href: "/manager", label: "Dashboard", icon: LayoutDashboard }],
+  },
+  {
+    section: "Manage",
     items: [
-      { href: "/manager", label: "Dashboard", icon: LayoutDashboard },
       { href: "/manager/shops", label: "Shops", icon: Store },
       { href: "/manager/products", label: "Products", icon: Package },
+      { href: "/manager/team", label: "Team", icon: UsersRound, adminOnly: true },
     ],
   },
   {
@@ -43,7 +48,7 @@ const NAV: { section: string; items: NavItem[] }[] = [
     ],
   },
   {
-    section: "Administration",
+    section: "System",
     items: [{ href: "/manager/admin", label: "Settings", icon: Settings, adminOnly: true }],
   },
 ];

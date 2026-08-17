@@ -25,7 +25,7 @@ const ROLES = [
 const roleLabel = (role: string) =>
   ROLES.find((r) => r.value === role)?.label ?? role.replace("_", " ");
 
-export default function UsersTab() {
+export default function TeamScreen() {
   const queryClient = useQueryClient();
   const [message, setMessage] = useState<string | null>(null);
   const [showAdd, setShowAdd] = useState(false);
@@ -199,6 +199,7 @@ export default function UsersTab() {
                         phone: u.phone,
                         role: u.role,
                         shopId: u.shopId,
+                        isActive: u.isActive,
                       }}
                     />
                     <button

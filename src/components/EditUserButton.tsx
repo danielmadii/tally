@@ -11,6 +11,7 @@ export interface EditableUser {
   phone: string;
   role: string;
   shopId: string | null;
+  isActive?: boolean;
 }
 
 const ROLES = [
@@ -64,6 +65,35 @@ export default function EditUserButton({
     });
     setError(null);
     setOpen(true);
+  }
+
+  async function act(
+    method: "PATCH" | "DELETE",
+    body?: Record<string, unknown>,
+    confirmText?: string
+  ) {
+    if (busy) return;
+    if (confirmText && !window.confirm(confirmText)) return;
+    setBusy(true);
+    setError(null);
+    try {
+      const res = await fetch(`/api/admin/users/${user.id}`, {
+        method,
+        ...(body
+          ? { headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }
+          : {}),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data.error ?? "Could not complete that");
+        return;
+      }
+      setOpen(false);
+      queryClient.invalidateQueries({ queryKey: ["admin-users"] });
+      router.refresh();
+    } finally {
+      setBusy(false);
+    }
   }
 
   async function save(e: React.FormEvent) {
@@ -223,6 +253,31 @@ export default function EditUserButton({
               </button>
               <button type="submit" disabled={busy} className="btn btn-primary">
                 {busy ? "Saving…" : "Save changes"}
+              </button>
+            </div>
+
+            <div className="mt-6 flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 pt-4">
+              <button
+                type="button"
+                disabled={busy}
+                onClick={() => act("PATCH", { isActive: user.isActive === false })}
+                className="text-xs font-medium text-slate-500 hover:text-slate-800"
+              >
+                {user.isActive === false ? "Reactivate user" : "Deactivate user"}
+              </button>
+              <button
+                type="button"
+                disabled={busy}
+                onClick={() =>
+                  act(
+                    "DELETE",
+                    undefined,
+                    `Delete ${user.name}? This only works while they have no recorded sales.`
+                  )
+                }
+                className="text-xs font-medium text-red-600 hover:text-red-700"
+              >
+                Delete user
               </button>
             </div>
           </form>

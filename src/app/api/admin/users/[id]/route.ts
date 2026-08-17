@@ -16,6 +16,56 @@ const Body = z.object({
   shopId: z.string().uuid().nullable().optional(),
 });
 
+/**
+ * Delete a user — only while they have no sales. Attribution is permanent, so
+ * anyone who has sold must be deactivated rather than removed.
+ */
+export async function DELETE(_req: NextRequest, ctx: { params: Promise<{ id: string }> }) {
+  return handle(async () => {
+    const session = await requireApiSession();
+    requireRole(session, "admin");
+    const { id } = await ctx.params;
+    if (id === session.id) apiError("You cannot delete your own account", 400);
+
+    const { data: user, error } = await db()
+      .from("app_user")
+      .select("id, full_name")
+      .eq("id", id)
+      .maybeSingle();
+    if (error) throw error;
+    if (!user) apiError("User not found", 404);
+
+    const { count, error: saleError } = await db()
+      .from("sale")
+      .select("id", { count: "exact", head: true })
+      .eq("salesperson_id", id);
+    if (saleError) throw saleError;
+    if (count && count > 0) {
+      apiError(
+        `${user.full_name} has ${count} recorded sale${count === 1 ? "" : "s"}. Deactivate them instead so the sales stay attributed.`,
+        409
+      );
+    }
+
+    for (const table of ["user_shop", "target"]) {
+      const { error: cleanupError } = await db().from(table).delete().eq("user_id", id);
+      if (cleanupError) throw cleanupError;
+    }
+    const { error: deleteError } = await db().from("app_user").delete().eq("id", id);
+    if (deleteError) throw deleteError;
+
+    await db().from("audit_log").insert({
+      actor_id: session.id,
+      action: "user_delete",
+      entity: "app_user",
+      entity_id: id,
+      before: { name: user.full_name },
+    });
+
+    return { ok: true };
+  });
+}
+
 export async function PATCH(req: NextRequest, ctx: { params: Promise<{ id: string }> }) {
   return handle(async () => {
     const session = await requireApiSession();

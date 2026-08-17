@@ -5,7 +5,7 @@ import { requireSession } from "@/lib/server/session";
 import { getShopDetail } from "@/lib/server/queries";
 import { fmtMoney, fmtInt } from "@/lib/format";
 import StockInPanel from "@/components/StockInPanel";
-import ImportPanel from "../../admin/ImportPanel";
+import ImportPanel from "@/components/ImportPanel";
 import EditShopButton from "@/components/EditShopButton";
 
 export const dynamic = "force-dynamic";
@@ -58,6 +58,7 @@ export default async function ShopDetailPage({
               name: shop.name,
               city: shop.city,
               address: shop.address,
+              isActive: shop.is_active,
             }}
           />
         )}

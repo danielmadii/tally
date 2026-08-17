@@ -12,6 +12,64 @@ const Body = z.object({
   addBarcode: z.string().min(4).max(30).optional(),
 });
 
+/**
+ * Delete a product variant — only while it has never been sold. Sold items
+ * are referenced by sale lines forever, so they are deactivated instead.
+ */
+export async function DELETE(_req: NextRequest, ctx: { params: Promise<{ id: string }> }) {
+  return handle(async () => {
+    const session = await requireApiSession();
+    requireRole(session, "admin");
+    const { id } = await ctx.params;
+
+    const { data: variant, error } = await db()
+      .from("variant")
+      .select("id, sku, product_id")
+      .eq("id", id)
+      .maybeSingle();
+    if (error) throw error;
+    if (!variant) apiError("Product not found", 404);
+
+    const { count, error: lineError } = await db()
+      .from("sale_line")
+      .select("id", { count: "exact", head: true })
+      .eq("variant_id", id);
+    if (lineError) throw lineError;
+    if (count && count > 0) {
+      apiError(
+        `${variant.sku} has been sold ${count} time${count === 1 ? "" : "s"}. Deactivate it instead so past sales stay readable.`,
+        409
+      );
+    }
+
+    for (const table of ["variant_barcode", "price_history", "stock_movement", "stock_level"]) {
+      const { error: cleanupError } = await db().from(table).delete().eq("variant_id", id);
+      if (cleanupError) throw cleanupError;
+    }
+    const { error: deleteError } = await db().from("variant").delete().eq("id", id);
+    if (deleteError) throw deleteError;
+
+    // Remove the parent product too once it has no variants left.
+    const { count: siblings } = await db()
+      .from("variant")
+      .select("id", { count: "exact", head: true })
+      .eq("product_id", variant.product_id);
+    if (!siblings) {
+      await db().from("product").delete().eq("id", variant.product_id);
+    }
+
+    await db().from("audit_log").insert({
+      actor_id: session.id,
+      action: "variant_delete",
+      entity: "variant",
+      entity_id: id,
+      before: { sku: variant.sku },
+    });
+
+    return { ok: true };
+  });
+}
+
 export async function PATCH(req: NextRequest, ctx: { params: Promise<{ id: string }> }) {
   return handle(async () => {
     const session = await requireApiSession();
