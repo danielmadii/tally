@@ -17,6 +17,7 @@ interface VariantRow {
   reorderPoint: number;
   isActive: boolean;
   barcodes: string[];
+  qtyOnHand: number | null;
 }
 
 interface NewVariant {
@@ -39,7 +40,13 @@ const emptyVariant = (): NewVariant => ({
   barcode: "",
 });
 
-export default function CatalogueScreen() {
+export default function CatalogueScreen({
+  shopId,
+  shopName,
+}: {
+  shopId: string;
+  shopName: string;
+}) {
   const queryClient = useQueryClient();
   const [message, setMessage] = useState<string | null>(null);
   const [filter, setFilter] = useState("");
@@ -50,10 +57,10 @@ export default function CatalogueScreen() {
   const [priceEdits, setPriceEdits] = useState<Record<string, string>>({});
   const [viewingBarcode, setViewingBarcode] = useState<{ value: string; name: string } | null>(null);
 
-  const { data } = useQuery({
-    queryKey: ["admin-catalogue"],
+  const { data, isLoading } = useQuery({
+    queryKey: ["admin-catalogue", shopId],
     queryFn: async () => {
-      const res = await fetch("/api/admin/catalogue");
+      const res = await fetch(`/api/admin/catalogue?shop=${shopId}`);
       if (!res.ok) throw new Error("Failed to load catalogue");
       return res.json() as Promise<{
         brands: { id: string; name: string }[];
@@ -80,7 +87,7 @@ export default function CatalogueScreen() {
     });
     const resData = await res.json();
     setMessage(res.ok ? okMsg : resData.error ?? "Failed");
-    if (res.ok) queryClient.invalidateQueries({ queryKey: ["admin-catalogue"] });
+    if (res.ok) queryClient.invalidateQueries({ queryKey: ["admin-catalogue", shopId] });
   }
 
   function savePrice(v: VariantRow) {
@@ -107,7 +114,7 @@ export default function CatalogueScreen() {
     const data = await res.json();
     setMessage(res.ok ? `${v.sku} deleted.` : data.error ?? "Failed");
     if (res.ok) {
-      queryClient.invalidateQueries({ queryKey: ["admin-catalogue"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-catalogue", shopId] });
       queryClient.invalidateQueries({ queryKey: ["catalogue"] });
     }
   }
@@ -144,7 +151,7 @@ export default function CatalogueScreen() {
       const res = await fetch("/api/admin/catalogue", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
+        body: JSON.stringify({ ...payload, shopId }),
       });
       const resData = await res.json();
       setMessage(res.ok ? `${product.productName} created with ${payload.variants.length} variant(s).` : resData.error ?? "Failed");
@@ -152,7 +159,7 @@ export default function CatalogueScreen() {
         setProduct({ productName: "", brandName: "", categoryName: "" });
         setVariants([emptyVariant()]);
         setShowAdd(false);
-        queryClient.invalidateQueries({ queryKey: ["admin-catalogue"] });
+        queryClient.invalidateQueries({ queryKey: ["admin-catalogue", shopId] });
       }
     } finally {
       setBusy(false);
@@ -178,7 +185,7 @@ export default function CatalogueScreen() {
         >
           {showAdd ? "Cancel" : "+ Add product"}
         </button>
-        <ImportPanel />
+        <ImportPanel lockedShopId={shopId} lockedShopName={shopName} />
       </div>
 
       {showAdd && (
@@ -283,6 +290,18 @@ export default function CatalogueScreen() {
         </form>
       )}
 
+      {!isLoading && rows.length === 0 && !filter.trim() && (
+        <div className="card mt-4 border-dashed p-8 text-center">
+          <p className="text-base font-semibold text-slate-900">
+            No products in {shopName} yet
+          </p>
+          <p className="mx-auto mt-1 max-w-md text-sm text-slate-500">
+            Import a supplier list with “Import Excel”, or add products one at a time.
+          </p>
+        </div>
+      )}
+
+      {(rows.length > 0 || filter.trim()) && (
       <div className="mt-4 overflow-x-auto card">
         <table className="w-full min-w-[760px] text-sm">
           <thead>
@@ -290,6 +309,7 @@ export default function CatalogueScreen() {
               <th className="px-4 py-3">Variant</th>
               <th className="px-4 py-3">Brand</th>
               <th className="px-4 py-3">Barcodes</th>
+              <th className="px-4 py-3 text-right">On hand</th>
               <th className="px-4 py-3 text-right">Cost</th>
               <th className="px-4 py-3 text-right">Price</th>
               <th className="px-4 py-3"></th>
@@ -316,6 +336,17 @@ export default function CatalogueScreen() {
                         </button>
                       ))
                     : "—"}
+                </td>
+                <td className="px-4 py-3 text-right">
+                  <span
+                    className={`inline-block min-w-10 rounded-md px-2 py-1 text-center text-xs font-semibold tabular-nums ${
+                      (v.qtyOnHand ?? 0) <= 3
+                        ? "bg-amber-100 text-amber-800"
+                        : "bg-slate-100 text-slate-700"
+                    }`}
+                  >
+                    {v.qtyOnHand ?? 0}
+                  </span>
                 </td>
                 <td className="px-4 py-3 text-right tabular-nums text-slate-500">
                   {v.costPrice !== null ? fmtMoney(v.costPrice) : "—"}
@@ -357,6 +388,7 @@ export default function CatalogueScreen() {
           </tbody>
         </table>
       </div>
+      )}
 
       {viewingBarcode && (
         <BarcodeView

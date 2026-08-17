@@ -5,26 +5,38 @@ import { requireApiSession } from "@/lib/server/session";
 import { handle, apiError, requireRole } from "@/lib/server/api";
 import { fetchAll } from "@/lib/server/queries";
 
-export async function GET() {
+const VARIANT_FIELDS = `id, sku, shade_name, shade_code, size_label, price, cost_price, reorder_point, is_active,
+  product:product_id ( id, name, is_active, brand:brand_id ( name ), category:category_id ( name ) ),
+  barcodes:variant_barcode ( barcode )`;
+
+export async function GET(req: NextRequest) {
   return handle(async () => {
     const session = await requireApiSession();
     requireRole(session, "admin");
+    // Products are always viewed in the context of one shop.
+    const shopId = req.nextUrl.searchParams.get("shop");
 
-    const [brandsRes, categoriesRes, variants] = await Promise.all([
+    const [brandsRes, categoriesRes, rows] = await Promise.all([
       db().from("brand").select("id, name").eq("is_active", true).order("name"),
       db().from("category").select("id, name, parent_id").order("name"),
-      fetchAll(() =>
-        db()
-          .from("variant")
-          .select(
-            `id, sku, shade_name, shade_code, size_label, price, cost_price, reorder_point, is_active,
-             product:product_id ( id, name, is_active, brand:brand_id ( name ), category:category_id ( name ) ),
-             barcodes:variant_barcode ( barcode )`
+      shopId
+        ? fetchAll(() =>
+            db()
+              .from("stock_level")
+              .select(`qty_on_hand, variant:variant_id!inner ( ${VARIANT_FIELDS} )`)
+              .eq("shop_id", shopId)
+              .order("variant_id")
           )
-          .order("sku")
-      ),
+        : fetchAll(() => db().from("variant").select(VARIANT_FIELDS).order("sku")),
     ]);
     for (const r of [brandsRes, categoriesRes]) if (r.error) throw r.error;
+
+    /* eslint-disable @typescript-eslint/no-explicit-any */
+    const variants = shopId
+      ? (rows as any[])
+          .map((r) => ({ ...r.variant, qtyOnHand: r.qty_on_hand }))
+          .sort((a, b) => a.sku.localeCompare(b.sku))
+      : (rows as any[]).map((v) => ({ ...v, qtyOnHand: null }));
 
     /* eslint-disable @typescript-eslint/no-explicit-any */
     return {
@@ -43,6 +55,7 @@ export async function GET() {
         reorderPoint: v.reorder_point,
         isActive: v.is_active && v.product?.is_active !== false,
         barcodes: (v.barcodes ?? []).map((b: any) => b.barcode),
+        qtyOnHand: v.qtyOnHand ?? null,
       })),
     };
   });
@@ -65,6 +78,8 @@ const CreateBody = z.object({
       })
     )
     .min(1),
+  // New products are created while looking at a shop — list them there.
+  shopId: z.string().uuid().nullable().optional(),
 });
 
 async function findOrCreate(table: "brand" | "category", name: string): Promise<string> {
@@ -131,6 +146,13 @@ export async function POST(req: NextRequest) {
           .from("variant_barcode")
           .insert({ variant_id: variant.id, barcode: v.barcode.trim() });
         if (bcError) throw bcError;
+      }
+
+      if (body.shopId) {
+        const { error: levelError } = await db()
+          .from("stock_level")
+          .insert({ shop_id: body.shopId, variant_id: variant.id, qty_on_hand: 0 });
+        if (levelError) throw levelError;
       }
     }
 
