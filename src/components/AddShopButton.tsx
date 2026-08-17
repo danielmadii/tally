@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
 import { Plus, X } from "lucide-react";
+import Modal from "@/components/Modal";
 
 /** Create a shop without leaving the Shops page. */
 export default function AddShopButton() {
@@ -47,10 +48,7 @@ export default function AddShopButton() {
       </button>
 
       {open && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
-          onClick={() => setOpen(false)}
-        >
+        <Modal onClose={() => setOpen(false)}>
           <form
             onSubmit={save}
             className="w-full max-w-md rounded-xl bg-white p-6 text-left shadow-2xl"
@@ -119,7 +117,7 @@ export default function AddShopButton() {
               </button>
             </div>
           </form>
-        </div>
+        </Modal>
       )}
     </>
   );

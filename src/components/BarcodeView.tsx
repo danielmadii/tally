@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import { X } from "lucide-react";
+import Modal from "@/components/Modal";
 
 /**
  * Renders a scannable barcode on screen — EAN-13 when the number qualifies,
@@ -52,10 +53,7 @@ export default function BarcodeView({
   }, [value]);
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
-      onClick={onClose}
-    >
+    <Modal onClose={onClose}>
       <div
         className="w-full max-w-md rounded-xl bg-white p-6 text-center shadow-2xl"
         onClick={(e) => e.stopPropagation()}
@@ -69,10 +67,7 @@ export default function BarcodeView({
         <div className="mt-4 flex justify-center overflow-x-auto rounded-lg border border-slate-100 bg-white py-2">
           <svg ref={svgRef} />
         </div>
-        <p className="mt-3 text-xs text-slate-400">
-          Point the phone scanner at this screen to test, or print it as a shelf label.
-        </p>
       </div>
-    </div>
+    </Modal>
   );
 }

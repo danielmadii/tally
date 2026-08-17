@@ -5,6 +5,8 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { fmtMoney } from "@/lib/format";
 import ImportPanel from "@/components/ImportPanel";
 import BarcodeView from "@/components/BarcodeView";
+import InlineBarcode from "@/components/InlineBarcode";
+import EditProductButton from "@/components/EditProductButton";
 
 interface VariantRow {
   id: string;
@@ -54,8 +56,9 @@ export default function CatalogueScreen({
   const [busy, setBusy] = useState(false);
   const [product, setProduct] = useState({ productName: "", brandName: "", categoryName: "" });
   const [variants, setVariants] = useState<NewVariant[]>([emptyVariant()]);
-  const [priceEdits, setPriceEdits] = useState<Record<string, string>>({});
   const [viewingBarcode, setViewingBarcode] = useState<{ value: string; name: string } | null>(null);
+  const [page, setPage] = useState(0);
+  const PAGE_SIZE = 40;
 
   const { data, isLoading } = useQuery({
     queryKey: ["admin-catalogue", shopId],
@@ -78,52 +81,8 @@ export default function CatalogueScreen({
     );
   }, [data, filter]);
 
-  async function patchVariant(id: string, patch: Record<string, unknown>, okMsg: string) {
-    setMessage(null);
-    const res = await fetch(`/api/admin/variants/${id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(patch),
-    });
-    const resData = await res.json();
-    setMessage(res.ok ? okMsg : resData.error ?? "Failed");
-    if (res.ok) queryClient.invalidateQueries({ queryKey: ["admin-catalogue", shopId] });
-  }
-
-  function savePrice(v: VariantRow) {
-    const raw = priceEdits[v.id];
-    if (raw === undefined) return;
-    const price = Number(raw);
-    if (!Number.isFinite(price) || price <= 0) {
-      setMessage("Price must be a positive number");
-      return;
-    }
-    if (price === v.price) return;
-    patchVariant(v.id, { price }, `${v.sku} price updated — old price kept in history.`);
-    setPriceEdits((prev) => {
-      const next = { ...prev };
-      delete next[v.id];
-      return next;
-    });
-  }
-
-  async function deleteVariant(v: VariantRow) {
-    if (!window.confirm(`Delete ${v.sku}? This only works while it has never been sold.`)) return;
-    setMessage(null);
-    const res = await fetch(`/api/admin/variants/${v.id}`, { method: "DELETE" });
-    const data = await res.json();
-    setMessage(res.ok ? `${v.sku} deleted.` : data.error ?? "Failed");
-    if (res.ok) {
-      queryClient.invalidateQueries({ queryKey: ["admin-catalogue", shopId] });
-      queryClient.invalidateQueries({ queryKey: ["catalogue"] });
-    }
-  }
-
-  function addBarcode(v: VariantRow) {
-    const barcode = window.prompt(`New barcode for ${v.sku}:`);
-    if (!barcode?.trim()) return;
-    patchVariant(v.id, { addBarcode: barcode.trim() }, `Barcode added to ${v.sku}.`);
-  }
+  const pageCount = Math.max(1, Math.ceil(rows.length / PAGE_SIZE));
+  const pageRows = rows.slice(page * PAGE_SIZE, page * PAGE_SIZE + PAGE_SIZE);
 
   async function createProduct(e: React.FormEvent) {
     e.preventDefault();
@@ -175,7 +134,10 @@ export default function CatalogueScreen({
       <div className="flex flex-wrap items-center gap-3">
         <input
           value={filter}
-          onChange={(e) => setFilter(e.target.value)}
+          onChange={(e) => {
+            setFilter(e.target.value);
+            setPage(0);
+          }}
           placeholder="Filter by name, brand, SKU, barcode…"
           className="min-w-56 flex-1 rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none focus:border-primary"
         />
@@ -303,44 +265,48 @@ export default function CatalogueScreen({
 
       {(rows.length > 0 || filter.trim()) && (
       <div className="mt-4 overflow-x-auto card">
-        <table className="w-full min-w-[760px] text-sm">
+        <table className="w-full min-w-[820px] text-sm">
           <thead>
             <tr className="bg-slate-50 border-b border-slate-200 text-left text-[11px] font-semibold uppercase tracking-wider text-slate-500">
               <th className="px-4 py-3">Variant</th>
               <th className="px-4 py-3">Brand</th>
-              <th className="px-4 py-3">Barcodes</th>
-              <th className="px-4 py-3 text-right">On hand</th>
+              <th className="px-4 py-3">Barcode</th>
+              <th className="px-4 py-3 text-right">In stock</th>
               <th className="px-4 py-3 text-right">Cost</th>
               <th className="px-4 py-3 text-right">Price</th>
               <th className="px-4 py-3"></th>
             </tr>
           </thead>
           <tbody>
-            {rows.map((v) => (
-              <tr key={v.id} className={`border-b border-slate-100 last:border-0 ${v.isActive ? "" : "opacity-50"}`}>
+            {pageRows.map((v) => (
+              <tr
+                key={v.id}
+                className={`border-b border-slate-100 last:border-0 ${v.isActive ? "" : "opacity-50"}`}
+              >
                 <td className="px-4 py-3">
                   <p className="font-medium">{v.name}</p>
                   <p className="font-mono text-xs text-slate-400">{v.sku}</p>
                 </td>
                 <td className="px-4 py-3 text-slate-500">{v.brand}</td>
-                <td className="px-4 py-3 font-mono text-xs">
-                  {v.barcodes.length
-                    ? v.barcodes.map((code) => (
-                        <button
-                          key={code}
-                          onClick={() => setViewingBarcode({ value: code, name: v.name })}
-                          title="Show scannable barcode"
-                          className="mr-1.5 rounded bg-slate-100 px-1.5 py-0.5 text-slate-600 hover:bg-slate-200 hover:text-slate-900"
-                        >
-                          {code}
-                        </button>
-                      ))
-                    : "—"}
+                <td className="px-4 py-2">
+                  {v.barcodes.length ? (
+                    <InlineBarcode
+                      value={v.barcodes[0]}
+                      onClick={() => setViewingBarcode({ value: v.barcodes[0], name: v.name })}
+                    />
+                  ) : (
+                    <span className="text-xs text-slate-400">No barcode</span>
+                  )}
+                  {v.barcodes.length > 1 && (
+                    <span className="text-[11px] text-slate-400">
+                      +{v.barcodes.length - 1} more
+                    </span>
+                  )}
                 </td>
                 <td className="px-4 py-3 text-right">
                   <span
                     className={`inline-block min-w-10 rounded-md px-2 py-1 text-center text-xs font-semibold tabular-nums ${
-                      (v.qtyOnHand ?? 0) <= 3
+                      (v.qtyOnHand ?? 0) <= v.reorderPoint
                         ? "bg-amber-100 text-amber-800"
                         : "bg-slate-100 text-slate-700"
                     }`}
@@ -351,36 +317,12 @@ export default function CatalogueScreen({
                 <td className="px-4 py-3 text-right tabular-nums text-slate-500">
                   {v.costPrice !== null ? fmtMoney(v.costPrice) : "—"}
                 </td>
-                <td className="px-4 py-3 text-right">
-                  <input
-                    inputMode="decimal"
-                    value={priceEdits[v.id] ?? String(v.price)}
-                    onChange={(e) => setPriceEdits((p) => ({ ...p, [v.id]: e.target.value }))}
-                    onBlur={() => savePrice(v)}
-                    onKeyDown={(e) => e.key === "Enter" && (e.target as HTMLInputElement).blur()}
-                    className="w-24 rounded-lg border border-slate-200 px-2 py-1.5 text-right text-sm tabular-nums outline-none focus:border-primary"
-                  />
+                <td className="px-4 py-3 text-right font-semibold tabular-nums">
+                  {v.price > 0 ? fmtMoney(v.price) : <span className="text-slate-400">no price</span>}
                 </td>
                 <td className="px-4 py-3">
-                  <div className="flex justify-end gap-3 text-xs font-medium">
-                    <button onClick={() => addBarcode(v)} className="text-primary">
-                      + Barcode
-                    </button>
-                    <button
-                      onClick={() =>
-                        patchVariant(
-                          v.id,
-                          { isActive: !v.isActive },
-                          v.isActive ? `${v.sku} deactivated` : `${v.sku} reactivated`
-                        )
-                      }
-                      className={v.isActive ? "text-slate-500" : "text-green-700"}
-                    >
-                      {v.isActive ? "Deactivate" : "Reactivate"}
-                    </button>
-                    <button onClick={() => deleteVariant(v)} className="text-red-600">
-                      Delete
-                    </button>
+                  <div className="flex justify-end">
+                    <EditProductButton shopId={shopId} variant={v} />
                   </div>
                 </td>
               </tr>
@@ -388,6 +330,32 @@ export default function CatalogueScreen({
           </tbody>
         </table>
       </div>
+      )}
+
+      {rows.length > PAGE_SIZE && (
+        <div className="mt-3 flex items-center justify-between text-sm text-slate-500">
+          <span>
+            Showing {(page * PAGE_SIZE + 1).toLocaleString()}–
+            {Math.min((page + 1) * PAGE_SIZE, rows.length).toLocaleString()} of{" "}
+            {rows.length.toLocaleString()}
+          </span>
+          <div className="flex gap-2">
+            <button
+              onClick={() => setPage((p) => Math.max(0, p - 1))}
+              disabled={page === 0}
+              className="btn btn-secondary h-8"
+            >
+              Previous
+            </button>
+            <button
+              onClick={() => setPage((p) => Math.min(pageCount - 1, p + 1))}
+              disabled={page >= pageCount - 1}
+              className="btn btn-secondary h-8"
+            >
+              Next
+            </button>
+          </div>
+        </div>
       )}
 
       {viewingBarcode && (
