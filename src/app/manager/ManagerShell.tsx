@@ -176,7 +176,6 @@ function Sidebar({
   collapsed,
   onNavigate,
   onToggleCollapse,
-  onLogout,
 }: {
   name: string;
   role: string;
@@ -185,7 +184,6 @@ function Sidebar({
   collapsed: boolean;
   onNavigate: () => void;
   onToggleCollapse?: () => void;
-  onLogout: () => void;
 }) {
   return (
     <div className="flex h-full flex-col bg-slate-950 text-slate-400">
@@ -266,24 +264,12 @@ function Sidebar({
         ))}
       </nav>
 
-      <div className={`border-t border-slate-800 py-4 ${collapsed ? "px-2" : "px-4"}`}>
-        {!collapsed && (
-          <>
-            <p className="text-sm font-semibold text-white">{name}</p>
-            <p className="text-xs capitalize text-slate-400">{role.replace("_", " ")}</p>
-          </>
-        )}
-        <button
-          onClick={onLogout}
-          title={collapsed ? "Sign out" : undefined}
-          className={`mt-3 flex w-full items-center gap-2 rounded-lg bg-slate-800 py-2 text-xs font-medium text-slate-300 hover:bg-slate-700 hover:text-white ${
-            collapsed ? "justify-center px-0" : "px-3"
-          }`}
-        >
-          <LogOut className="h-4 w-4 shrink-0" />
-          {!collapsed && "Sign out"}
-        </button>
-      </div>
+      {!collapsed && (
+        <div className="border-t border-slate-800 px-4 py-4">
+          <p className="text-sm font-semibold text-white">{name}</p>
+          <p className="text-xs capitalize text-slate-400">{role.replace("_", " ")}</p>
+        </div>
+      )}
     </div>
   );
 }
@@ -345,7 +331,6 @@ export default function ManagerShell({
           collapsed={collapsed}
           onNavigate={() => {}}
           onToggleCollapse={toggleCollapse}
-          onLogout={logout}
         />
       </aside>
 
@@ -364,7 +349,6 @@ export default function ManagerShell({
               pathname={pathname}
               collapsed={false}
               onNavigate={() => setDrawerOpen(false)}
-              onLogout={logout}
             />
           </div>
         </div>
