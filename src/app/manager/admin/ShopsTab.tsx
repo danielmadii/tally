@@ -48,6 +48,18 @@ export default function ShopsTab() {
     }
   }
 
+  async function saveEdit(shop: ShopRow, patch: { name?: string; city?: string }) {
+    setMessage(null);
+    const res = await fetch(`/api/admin/shops/${shop.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(patch),
+    });
+    const resData = await res.json();
+    setMessage(res.ok ? `${patch.name ?? shop.name} updated.` : resData.error ?? "Failed");
+    if (res.ok) queryClient.invalidateQueries({ queryKey: ["admin-shops"] });
+  }
+
   async function toggleActive(shop: ShopRow) {
     setMessage(null);
     const res = await fetch(`/api/admin/shops/${shop.id}`, {
@@ -117,15 +129,37 @@ export default function ShopsTab() {
             {(data?.shops ?? []).map((s) => (
               <tr key={s.id} className={`border-b border-slate-100 last:border-0 ${s.is_active ? "" : "opacity-50"}`}>
                 <td className="px-4 py-3 font-mono text-xs">{s.code}</td>
-                <td className="px-4 py-3 font-medium">
-                  {s.name}
-                  {!s.is_active && (
-                    <span className="ml-2 rounded bg-slate-100 px-1.5 py-0.5 text-xs text-slate-500">
-                      closed
-                    </span>
-                  )}
+                <td className="px-4 py-2">
+                  <span className="flex items-center gap-2">
+                    <input
+                      defaultValue={s.name}
+                      onBlur={(e) => {
+                        const name = e.target.value.trim();
+                        if (name && name !== s.name) saveEdit(s, { name });
+                        else e.target.value = s.name;
+                      }}
+                      onKeyDown={(e) => e.key === "Enter" && (e.target as HTMLInputElement).blur()}
+                      className="w-40 rounded-md border border-transparent px-2 py-1.5 font-medium outline-none hover:border-slate-200 focus:border-primary focus:ring-2 focus:ring-primary/15"
+                    />
+                    {!s.is_active && (
+                      <span className="rounded bg-slate-100 px-1.5 py-0.5 text-xs text-slate-500">
+                        closed
+                      </span>
+                    )}
+                  </span>
                 </td>
-                <td className="px-4 py-3 text-slate-500">{s.city ?? "—"}</td>
+                <td className="px-4 py-2">
+                  <input
+                    defaultValue={s.city ?? ""}
+                    placeholder="—"
+                    onBlur={(e) => {
+                      const city = e.target.value.trim();
+                      if (city !== (s.city ?? "")) saveEdit(s, { city });
+                    }}
+                    onKeyDown={(e) => e.key === "Enter" && (e.target as HTMLInputElement).blur()}
+                    className="w-32 rounded-md border border-transparent px-2 py-1.5 text-slate-500 outline-none hover:border-slate-200 focus:border-primary focus:ring-2 focus:ring-primary/15"
+                  />
+                </td>
                 <td className="px-4 py-3 text-slate-500">{s.opened_on ?? "—"}</td>
                 <td className="px-4 py-3 text-right">
                   <button
