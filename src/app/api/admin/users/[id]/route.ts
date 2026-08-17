@@ -7,6 +7,8 @@ import { handle, apiError, requireRole } from "@/lib/server/api";
 import { businessDate } from "@/lib/format";
 
 const Body = z.object({
+  name: z.string().min(2).max(100).optional(),
+  phone: z.string().min(4).max(20).optional(),
   isActive: z.boolean().optional(),
   pin: z.string().regex(/^\d{4,6}$/).optional(),
   role: z.enum(["salesperson", "supervisor", "area_manager", "admin"]).optional(),
@@ -23,7 +25,7 @@ export async function PATCH(req: NextRequest, ctx: { params: Promise<{ id: strin
 
     const { data: user, error } = await db()
       .from("app_user")
-      .select("id, full_name, role, is_active")
+      .select("id, full_name, phone, role, is_active")
       .eq("id", id)
       .maybeSingle();
     if (error) throw error;
@@ -31,8 +33,23 @@ export async function PATCH(req: NextRequest, ctx: { params: Promise<{ id: strin
     if (id === session.id && body.isActive === false) {
       apiError("You cannot deactivate your own account", 400);
     }
+    if (id === session.id && body.role !== undefined && body.role !== "admin") {
+      apiError("You cannot remove your own admin access", 400);
+    }
+
+    // The phone number is the login identifier — it must stay unique.
+    if (body.phone !== undefined && body.phone.trim() !== user.phone) {
+      const { data: clash } = await db()
+        .from("app_user")
+        .select("id")
+        .eq("phone", body.phone.trim())
+        .maybeSingle();
+      if (clash) apiError("Another user already has that phone number", 409);
+    }
 
     const updates: Record<string, unknown> = {};
+    if (body.name !== undefined) updates.full_name = body.name.trim();
+    if (body.phone !== undefined) updates.phone = body.phone.trim();
     if (body.isActive !== undefined) updates.is_active = body.isActive;
     if (body.role !== undefined) updates.role = body.role;
     if (body.pin !== undefined) updates.pin_hash = bcrypt.hashSync(body.pin, 10);
@@ -63,8 +80,10 @@ export async function PATCH(req: NextRequest, ctx: { params: Promise<{ id: strin
       action: "user_update",
       entity: "app_user",
       entity_id: id,
-      before: { role: user.role, is_active: user.is_active },
+      before: { name: user.full_name, phone: user.phone, role: user.role, is_active: user.is_active },
       after: {
+        ...(body.name !== undefined && { name: body.name }),
+        ...(body.phone !== undefined && { phone: body.phone }),
         ...(body.role !== undefined && { role: body.role }),
         ...(body.isActive !== undefined && { is_active: body.isActive }),
         ...(body.pin !== undefined && { pin: "reset" }),

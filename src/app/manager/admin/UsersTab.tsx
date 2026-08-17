@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import EditUserButton from "@/components/EditUserButton";
 
 interface UserRow {
   id: string;
@@ -14,7 +15,15 @@ interface UserRow {
   shopName: string | null;
 }
 
-const ROLES = ["salesperson", "supervisor", "area_manager", "admin"] as const;
+const ROLES = [
+  { value: "salesperson", label: "Salesperson" },
+  { value: "supervisor", label: "Shop manager" },
+  { value: "area_manager", label: "Area manager" },
+  { value: "admin", label: "Administrator" },
+] as const;
+
+const roleLabel = (role: string) =>
+  ROLES.find((r) => r.value === role)?.label ?? role.replace("_", " ");
 
 export default function UsersTab() {
   const queryClient = useQueryClient();
@@ -41,26 +50,22 @@ export default function UsersTab() {
   });
   const shops = (shopsData?.shops ?? []).filter((s) => s.is_active);
 
-  async function patchUser(id: string, patch: Record<string, unknown>, okMsg: string) {
+  async function toggleActive(user: UserRow) {
     setMessage(null);
-    const res = await fetch(`/api/admin/users/${id}`, {
+    const res = await fetch(`/api/admin/users/${user.id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(patch),
+      body: JSON.stringify({ isActive: !user.isActive }),
     });
     const data = await res.json();
-    setMessage(res.ok ? okMsg : data.error ?? "Failed");
+    setMessage(
+      res.ok
+        ? user.isActive
+          ? `${user.name} deactivated — they can no longer sign in.`
+          : `${user.name} reactivated.`
+        : data.error ?? "Failed"
+    );
     if (res.ok) queryClient.invalidateQueries({ queryKey: ["admin-users"] });
-  }
-
-  function resetPin(user: UserRow) {
-    const pin = window.prompt(`New PIN for ${user.name} (4–6 digits):`);
-    if (!pin) return;
-    if (!/^\d{4,6}$/.test(pin)) {
-      setMessage("PIN must be 4–6 digits");
-      return;
-    }
-    patchUser(user.id, { pin }, `PIN reset for ${user.name}. Tell her in person, not in a group chat.`);
   }
 
   async function createUser(e: React.FormEvent) {
@@ -80,7 +85,9 @@ export default function UsersTab() {
         }),
       });
       const data = await res.json();
-      setMessage(res.ok ? `${form.name} created — send her the link and the PIN.` : data.error ?? "Failed");
+      setMessage(
+        res.ok ? `${form.name} created — send them the link and the PIN.` : data.error ?? "Failed"
+      );
       if (res.ok) {
         setForm({ name: "", phone: "", pin: "", role: "salesperson", shopId: "" });
         setShowAdd(false);
@@ -94,7 +101,7 @@ export default function UsersTab() {
   return (
     <div>
       {message && (
-        <p className="mb-3 rounded-xl bg-slate-100 px-4 py-3 text-sm text-slate-700">{message}</p>
+        <p className="mb-3 rounded-md bg-slate-100 px-4 py-3 text-sm text-slate-700">{message}</p>
       )}
 
       <button
@@ -105,13 +112,13 @@ export default function UsersTab() {
       </button>
 
       {showAdd && (
-        <form onSubmit={createUser} className="mt-3 grid gap-3 card p-4 sm:grid-cols-2">
+        <form onSubmit={createUser} className="card mt-3 grid gap-3 p-4 sm:grid-cols-2">
           <input
             required
             placeholder="Full name"
             value={form.name}
             onChange={(e) => setForm({ ...form, name: e.target.value })}
-            className="rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none focus:border-primary"
+            className="input"
           />
           <input
             required
@@ -119,7 +126,7 @@ export default function UsersTab() {
             placeholder="Phone (login), e.g. 0770 123 4567"
             value={form.phone}
             onChange={(e) => setForm({ ...form, phone: e.target.value })}
-            className="rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none focus:border-primary"
+            className="input"
           />
           <input
             required
@@ -128,23 +135,23 @@ export default function UsersTab() {
             placeholder="PIN (4–6 digits)"
             value={form.pin}
             onChange={(e) => setForm({ ...form, pin: e.target.value.replace(/\D/g, "") })}
-            className="rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none focus:border-primary"
+            className="input"
           />
           <select
             value={form.role}
             onChange={(e) => setForm({ ...form, role: e.target.value })}
-            className="rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm outline-none focus:border-primary"
+            className="input"
           >
             {ROLES.map((r) => (
-              <option key={r} value={r}>
-                {r.replace("_", " ")}
+              <option key={r.value} value={r.value}>
+                {r.label}
               </option>
             ))}
           </select>
           <select
             value={form.shopId}
             onChange={(e) => setForm({ ...form, shopId: e.target.value })}
-            className="rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm outline-none focus:border-primary"
+            className="input"
           >
             <option value="">No shop assignment</option>
             {shops.map((s) => (
@@ -153,88 +160,52 @@ export default function UsersTab() {
               </option>
             ))}
           </select>
-          <button
-            type="submit"
-            disabled={busy}
-            className="btn btn-primary press"
-          >
+          <button type="submit" disabled={busy} className="btn btn-primary press">
             {busy ? "Creating…" : "Create user"}
           </button>
         </form>
       )}
 
-      <div className="mt-4 overflow-x-auto card">
-        <table className="w-full min-w-[720px] text-sm">
+      <div className="card mt-4 overflow-x-auto">
+        <table className="w-full min-w-[640px] text-sm">
           <thead>
             <tr className="bg-slate-50 border-b border-slate-200 text-left text-[11px] font-semibold uppercase tracking-wider text-slate-500">
               <th className="px-4 py-3">Name</th>
               <th className="px-4 py-3">Phone</th>
               <th className="px-4 py-3">Role</th>
               <th className="px-4 py-3">Shop</th>
-              <th className="px-4 py-3">Actions</th>
+              <th className="px-4 py-3 text-right">Actions</th>
             </tr>
           </thead>
           <tbody>
             {(usersData?.users ?? []).map((u) => (
-              <tr key={u.id} className={`border-b border-slate-100 last:border-0 ${u.isActive ? "" : "opacity-50"}`}>
+              <tr
+                key={u.id}
+                className={`border-b border-slate-100 last:border-0 ${u.isActive ? "" : "opacity-50"}`}
+              >
                 <td className="px-4 py-3 font-medium">
                   {u.name}
-                  {!u.isActive && (
-                    <span className="ml-2 rounded bg-slate-100 px-1.5 py-0.5 text-xs text-slate-500">
-                      inactive
-                    </span>
-                  )}
+                  {!u.isActive && <span className="badge badge-neutral ml-2">inactive</span>}
                 </td>
                 <td className="px-4 py-3 font-mono text-xs text-slate-500">{u.phone}</td>
+                <td className="px-4 py-3 text-slate-600">{roleLabel(u.role)}</td>
+                <td className="px-4 py-3 text-slate-500">{u.shopName ?? "—"}</td>
                 <td className="px-4 py-3">
-                  <select
-                    value={u.role}
-                    onChange={(e) =>
-                      patchUser(u.id, { role: e.target.value }, `${u.name} is now ${e.target.value.replace("_", " ")}`)
-                    }
-                    className="rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-xs"
-                  >
-                    {ROLES.map((r) => (
-                      <option key={r} value={r}>
-                        {r.replace("_", " ")}
-                      </option>
-                    ))}
-                  </select>
-                </td>
-                <td className="px-4 py-3">
-                  <select
-                    value={u.shopId ?? ""}
-                    onChange={(e) =>
-                      patchUser(
-                        u.id,
-                        { shopId: e.target.value || null },
-                        `${u.name} transferred — past sales keep their original shop`
-                      )
-                    }
-                    className="rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-xs"
-                  >
-                    <option value="">—</option>
-                    {shops.map((s) => (
-                      <option key={s.id} value={s.id}>
-                        {s.name}
-                      </option>
-                    ))}
-                  </select>
-                </td>
-                <td className="px-4 py-3">
-                  <div className="flex gap-3 text-xs font-medium">
-                    <button onClick={() => resetPin(u)} className="text-primary">
-                      Reset PIN
-                    </button>
+                  <div className="flex items-center justify-end gap-3">
+                    <EditUserButton
+                      user={{
+                        id: u.id,
+                        name: u.name,
+                        phone: u.phone,
+                        role: u.role,
+                        shopId: u.shopId,
+                      }}
+                    />
                     <button
-                      onClick={() =>
-                        patchUser(
-                          u.id,
-                          { isActive: !u.isActive },
-                          u.isActive ? `${u.name} deactivated` : `${u.name} reactivated`
-                        )
-                      }
-                      className={u.isActive ? "text-red-600" : "text-green-700"}
+                      onClick={() => toggleActive(u)}
+                      className={`text-xs font-medium ${
+                        u.isActive ? "text-red-600" : "text-green-700"
+                      }`}
                     >
                       {u.isActive ? "Deactivate" : "Reactivate"}
                     </button>
