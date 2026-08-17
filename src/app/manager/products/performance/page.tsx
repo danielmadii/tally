@@ -36,9 +36,6 @@ export default async function ProductsPage({
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="page-title">Sales performance</h1>
-          <p className="page-desc">
-            {shopName ? `How ${shopName} is selling this month` : "How the chain is selling this month"}
-          </p>
         </div>
         {/* eslint-disable-next-line @next/next/no-html-link-for-pages -- CSV download, not a navigation */}
         <a href="/api/export/products" className="btn btn-secondary">
@@ -125,12 +122,7 @@ export default async function ProductsPage({
       </div>
 
       <div className="mt-10 flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h2 className="text-lg font-semibold">Dead stock</h2>
-          <p className="text-sm text-slate-500">
-            Stock on hand with no sale in 60 days{shopName ? ` — ${shopName}` : ""}
-          </p>
-        </div>
+        <h2 className="text-lg font-semibold">Dead stock</h2>
         {/* eslint-disable-next-line @next/next/no-html-link-for-pages -- CSV download, not a navigation */}
         <a href="/api/export/dead-stock" className="btn btn-secondary">
           <Download className="h-4 w-4" />

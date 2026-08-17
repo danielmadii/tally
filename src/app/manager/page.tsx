@@ -16,20 +16,11 @@ export default async function Dashboard() {
     getLiveDashboard(scope),
     getLeaderboard(scope),
   ]);
-  const today = new Date().toLocaleDateString("en", {
-    weekday: "long",
-    day: "numeric",
-    month: "long",
-  });
-
   return (
     <div>
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div>
-          <h1 className="page-title">Dashboard</h1>
-          <p className="page-desc">
-            {scope ? `${session.shopName} — today, ${today}` : `Chain-wide performance for today, ${today}`}
-          </p>
+          <h1 className="page-title">{scope ? session.shopName : "Dashboard"}</h1>
         </div>
         <Link href="/manager/products/performance" className="btn btn-secondary">
           <BarChart3 className="h-4 w-4" />
@@ -109,12 +100,7 @@ export default async function Dashboard() {
 
       <section className="mt-10">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <h2 className="text-lg font-semibold">Leaderboard — this month</h2>
-            <p className="text-sm text-slate-500">
-              Attainment is pro-rated by elapsed days, so mid-month figures are fair.
-            </p>
-          </div>
+          <h2 className="text-lg font-semibold">Leaderboard — this month</h2>
           {/* eslint-disable-next-line @next/next/no-html-link-for-pages -- CSV download, not a navigation */}
           <a href="/api/export/leaderboard" className="btn btn-secondary">
             <Download className="h-4 w-4" />

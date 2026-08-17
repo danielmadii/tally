@@ -79,9 +79,6 @@ export default function ApprovalsScreen({
   return (
     <div>
       <h1 className="page-title">Void requests</h1>
-      <p className="mt-1 text-sm text-slate-500">
-        A confirmed sale is never edited — approving a void reverses it and restores stock.
-      </p>
 
       {message && (
         <p className="mt-3 rounded-xl bg-slate-100 px-4 py-3 text-sm text-slate-700">{message}</p>
@@ -127,9 +124,6 @@ export default function ApprovalsScreen({
       </div>
 
       <h2 className="mt-10 text-lg font-semibold">Record a return</h2>
-      <p className="mt-1 text-sm text-slate-500">
-        Stock and revenue reverse on today’s date, referencing the original sale.
-      </p>
       <form onSubmit={recordReturn} className="mt-3 flex max-w-md gap-2">
         <input
           value={returnNo}
@@ -147,8 +141,7 @@ export default function ApprovalsScreen({
       </form>
 
       <h2 className="mt-10 text-lg font-semibold">Exceptions — this month</h2>
-      <div className="mt-1 flex items-center justify-between">
-        <p className="text-sm text-slate-500">Every void and every discounted sale, with who.</p>
+      <div className="mt-1 flex items-center justify-end">
         {/* eslint-disable-next-line @next/next/no-html-link-for-pages -- CSV download, not a navigation */}
         <a
           href="/api/export/exceptions"

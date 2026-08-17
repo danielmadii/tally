@@ -59,10 +59,7 @@ export default function TargetsScreen() {
 
   return (
     <div className="max-w-2xl">
-      <p className="text-sm text-slate-500">
-        Monthly targets for {monthName} — they drive the attainment column on the leaderboard.
-        Leave blank for no target.
-      </p>
+      <p className="text-sm font-medium text-slate-700">{monthName}</p>
 
       {isLoading && <p className="mt-6 text-center text-sm text-slate-400">Loading…</p>}
 

@@ -11,9 +11,6 @@ export default async function TeamPage() {
   return (
     <div>
       <h1 className="page-title">Team</h1>
-      <p className="page-desc">
-        Everyone who signs in — salespeople, shop managers and administrators.
-      </p>
       <div className="mt-5">
         <TeamScreen />
       </div>

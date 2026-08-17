@@ -18,9 +18,6 @@ export default function AdminScreen() {
   return (
     <div>
       <h1 className="page-title">Settings</h1>
-      <p className="page-desc">
-        System-wide configuration. Shops, products and people are managed in their own sections.
-      </p>
 
       <div className="mt-4 flex gap-1 rounded-lg bg-slate-200/70 p-1 sm:inline-flex">
         {tabs.map((t) => (

@@ -58,10 +58,6 @@ export default function ReconcileScreen({
   return (
     <div className="max-w-2xl">
       <h1 className="page-title">Till reconciliation</h1>
-      <p className="mt-1 text-sm text-slate-500">
-        Enter the till’s day total; the variance against recorded sales shows whether sales
-        are going unrecorded. A shop with a persistent gap is visible within a week.
-      </p>
 
       <form onSubmit={submit} className="mt-4 space-y-3 card p-4">
         {shops.length > 0 ? (
