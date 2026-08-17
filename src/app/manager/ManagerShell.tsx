@@ -56,6 +56,58 @@ const NAV: { section: string; items: NavItem[] }[] = [
 
 const COLLAPSE_KEY = "tally-sidebar-collapsed";
 
+function initials(name: string) {
+  return name
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((w) => w[0]!.toUpperCase())
+    .join("");
+}
+
+function ProfileMenu({
+  name,
+  role,
+  onLogout,
+}: {
+  name: string;
+  role: string;
+  onLogout: () => void;
+}) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="relative">
+      <button
+        onClick={() => setOpen((v) => !v)}
+        aria-label="Account"
+        className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-xs font-semibold text-white hover:opacity-90"
+      >
+        {initials(name)}
+      </button>
+
+      {open && (
+        <>
+          <div className="fixed inset-0 z-30" onClick={() => setOpen(false)} />
+          <div className="absolute right-0 top-11 z-40 w-56 rounded-lg border border-slate-200 bg-white p-2 shadow-lg">
+            <div className="px-3 py-2">
+              <p className="text-sm font-semibold text-slate-900">{name}</p>
+              <p className="text-xs capitalize text-slate-500">{role.replace("_", " ")}</p>
+            </div>
+            <div className="my-1 border-t border-slate-100" />
+            <button
+              onClick={onLogout}
+              className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+            >
+              <LogOut className="h-4 w-4" />
+              Sign out
+            </button>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
 function NotificationBell() {
   const [open, setOpen] = useState(false);
   const { data } = useQuery({
@@ -338,7 +390,10 @@ export default function ManagerShell({
             <p className="text-sm font-semibold">Tally</p>
           </div>
           <div className="hidden lg:block" />
-          <NotificationBell />
+          <div className="flex items-center gap-2">
+            <NotificationBell />
+            <ProfileMenu name={name} role={role} onLogout={logout} />
+          </div>
         </header>
 
         <main className="mx-auto w-full max-w-6xl flex-1 px-4 pb-16 pt-6 lg:px-8">{children}</main>
