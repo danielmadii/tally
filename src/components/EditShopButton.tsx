@@ -123,13 +123,7 @@ export default function EditShopButton({
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-start justify-between">
-              <div>
-                <h3 className="text-base font-semibold text-slate-900">Edit shop</h3>
-                <p className="mt-0.5 text-xs text-slate-500">
-                  Code <span className="font-mono">{shop.code}</span> — codes stay fixed so
-                  history and exports remain traceable.
-                </p>
-              </div>
+              <h3 className="text-base font-semibold text-slate-900">Edit shop</h3>
               <button
                 type="button"
                 onClick={() => setOpen(false)}
