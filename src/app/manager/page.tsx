@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Download } from "lucide-react";
+import { BarChart3, Download } from "lucide-react";
 import { requireSession } from "@/lib/server/session";
 import { getLiveDashboard, getLeaderboard } from "@/lib/server/queries";
 import { fmtMoney, fmtInt } from "@/lib/format";
@@ -24,13 +24,17 @@ export default async function Dashboard() {
 
   return (
     <div>
-      <div className="flex flex-wrap items-baseline justify-between gap-2">
+      <div className="flex flex-wrap items-center justify-between gap-2">
         <div>
           <h1 className="page-title">Dashboard</h1>
           <p className="page-desc">
             {scope ? `${session.shopName} — today, ${today}` : `Chain-wide performance for today, ${today}`}
           </p>
         </div>
+        <Link href="/manager/products/performance" className="btn btn-secondary">
+          <BarChart3 className="h-4 w-4" />
+          Sales performance
+        </Link>
       </div>
 
       <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-3">
