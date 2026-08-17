@@ -22,6 +22,28 @@ export async function fetchAll<T = any>(
   return all;
 }
 
+/**
+ * The shop a person belongs to *right now*. Sessions can outlive a transfer,
+ * so anything that attributes work to a shop must resolve it here rather than
+ * trusting the shop stamped into the login cookie.
+ */
+export async function getActiveShop(
+  userId: string
+): Promise<{ id: string; name: string; isActive: boolean } | null> {
+  const { data, error } = await db()
+    .from("user_shop")
+    .select("shop:shop_id!inner ( id, name, is_active )")
+    .eq("user_id", userId)
+    .is("end_date", null)
+    .order("start_date", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (error) throw error;
+  /* eslint-disable @typescript-eslint/no-explicit-any */
+  const shop = (data as any)?.shop;
+  return shop ? { id: shop.id, name: shop.name, isActive: shop.is_active } : null;
+}
+
 // ---------- catalogue ----------
 
 export async function getCatalogue(): Promise<CatalogueItem[]> {

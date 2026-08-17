@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { ArrowLeft, TriangleAlert } from "lucide-react";
 import { requireSession } from "@/lib/server/session";
-import { getShopDetail } from "@/lib/server/queries";
+import { getShopDetail, getActiveShop } from "@/lib/server/queries";
 import { fmtMoney, fmtInt } from "@/lib/format";
 import StockInPanel from "@/components/StockInPanel";
 import ImportPanel from "@/components/ImportPanel";
@@ -16,11 +16,12 @@ export default async function ShopDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const session = await requireSession();
+  const activeShop = await getActiveShop(session.id);
   const { id } = await params;
 
   // Supervisors see their own shop only — scope enforced server-side.
-  if (session.role === "supervisor" && session.shopId !== id) {
-    redirect(`/manager/shops/${session.shopId}`);
+  if (session.role === "supervisor" && activeShop && activeShop.id !== id) {
+    redirect(`/manager/shops/${activeShop.id}`);
   }
 
   const detail = await getShopDetail(id);

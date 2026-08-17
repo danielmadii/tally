@@ -2,7 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { ChevronRight, TriangleAlert, Users } from "lucide-react";
 import { requireSession } from "@/lib/server/session";
-import { getShopsOverview } from "@/lib/server/queries";
+import { getShopsOverview, getActiveShop } from "@/lib/server/queries";
 import { fmtMoney, fmtInt } from "@/lib/format";
 import AddShopButton from "@/components/AddShopButton";
 import EditShopButton from "@/components/EditShopButton";
@@ -11,9 +11,10 @@ export const dynamic = "force-dynamic";
 
 export default async function ShopsPage() {
   const session = await requireSession();
+  const activeShop = await getActiveShop(session.id);
   // A supervisor has exactly one shop — take them straight into it.
-  if (session.role === "supervisor" && session.shopId) {
-    redirect(`/manager/shops/${session.shopId}`);
+  if (session.role === "supervisor" && activeShop) {
+    redirect(`/manager/shops/${activeShop.id}`);
   }
 
   const shops = await getShopsOverview();

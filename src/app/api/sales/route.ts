@@ -3,6 +3,7 @@ import { z } from "zod";
 import { db } from "@/lib/server/supabase";
 import { requireApiSession } from "@/lib/server/session";
 import { handle, apiError } from "@/lib/server/api";
+import { getActiveShop } from "@/lib/server/queries";
 
 const Body = z.object({
   idempotencyKey: z.string().min(8),
@@ -22,7 +23,13 @@ const Body = z.object({
 export async function POST(req: NextRequest) {
   return handle(async () => {
     const session = await requireApiSession();
-    if (!session.shopId) apiError("No shop assignment", 403);
+    // Resolve the shop now — a transfer must take effect on the next sale,
+    // not whenever the salesperson happens to sign in again.
+    const shop = await getActiveShop(session.id);
+    if (!shop) apiError("You are not assigned to a shop. Ask your supervisor.", 403);
+    if (!shop.isActive) {
+      apiError(`${shop.name} is closed. Ask your administrator to assign you to a shop.`, 403);
+    }
     const body = Body.parse(await req.json());
 
     // Server-side price check: the client sends prices for display, but the
@@ -46,7 +53,7 @@ export async function POST(req: NextRequest) {
 
     const { data, error: rpcError } = await db().rpc("create_sale", {
       p_idempotency_key: body.idempotencyKey,
-      p_shop_id: session.shopId,
+      p_shop_id: shop.id,
       p_salesperson_id: session.id,
       p_entered_by_id: session.id,
       p_lines: lines,

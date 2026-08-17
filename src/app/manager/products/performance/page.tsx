@@ -2,7 +2,7 @@ import Link from "next/link";
 import { Download } from "lucide-react";
 import { requireSession } from "@/lib/server/session";
 import { db } from "@/lib/server/supabase";
-import { getProductPerformance, getDeadStock } from "@/lib/server/queries";
+import { getProductPerformance, getDeadStock, getActiveShop } from "@/lib/server/queries";
 import { fmtMoney, fmtInt } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
@@ -13,6 +13,7 @@ export default async function ProductsPage({
   searchParams: Promise<{ shop?: string }>;
 }) {
   const session = await requireSession();
+  const activeShop = await getActiveShop(session.id);
   const { shop: shopParam } = await searchParams;
 
   const { data: shops, error } = await db()
@@ -23,7 +24,7 @@ export default async function ProductsPage({
   if (error) throw error;
 
   // Supervisors are scoped to their own shop; managers pick a shop or all.
-  const shopId = session.role === "supervisor" ? session.shopId : shopParam || null;
+  const shopId = session.role === "supervisor" ? activeShop?.id ?? null : shopParam || null;
   const shopName = shopId ? shops?.find((s) => s.id === shopId)?.name ?? null : null;
 
   const [performance, deadStock] = await Promise.all([

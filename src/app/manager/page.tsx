@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { BarChart3, Download } from "lucide-react";
 import { requireSession } from "@/lib/server/session";
-import { getLiveDashboard, getLeaderboard } from "@/lib/server/queries";
+import { getLiveDashboard, getLeaderboard, getActiveShop } from "@/lib/server/queries";
 import { fmtMoney, fmtInt } from "@/lib/format";
 import HourlyChart from "./HourlyChart";
 
@@ -10,7 +10,8 @@ export const dynamic = "force-dynamic";
 export default async function Dashboard() {
   // Shop managers are competitors — they see their own shop only.
   const session = await requireSession();
-  const scope = session.role === "supervisor" ? session.shopId : null;
+  const activeShop = await getActiveShop(session.id);
+  const scope = session.role === "supervisor" ? activeShop?.id ?? null : null;
 
   const [data, leaderboard] = await Promise.all([
     getLiveDashboard(scope),
@@ -20,7 +21,7 @@ export default async function Dashboard() {
     <div>
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div>
-          <h1 className="page-title">{scope ? session.shopName : "Dashboard"}</h1>
+          <h1 className="page-title">{scope ? activeShop?.name ?? null : "Dashboard"}</h1>
         </div>
         <Link href="/manager/products/performance" className="btn btn-secondary">
           <BarChart3 className="h-4 w-4" />
