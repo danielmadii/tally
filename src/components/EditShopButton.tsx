@@ -67,6 +67,12 @@ export default function EditShopButton({
         setError(data.error ?? "Could not complete that");
         return;
       }
+      if (method === "DELETE") {
+        window.alert(
+          `${data.name} deleted — ${data.salesDeleted} sale(s) removed and ` +
+            `${data.salespeopleDeactivated} salesperson account(s) deactivated.`
+        );
+      }
       setOpen(false);
       queryClient.invalidateQueries({ queryKey: ["admin-shops"] });
       router.refresh();
@@ -185,20 +191,24 @@ export default function EditShopButton({
               >
                 {shop.isActive === false ? "Reactivate shop" : "Deactivate shop"}
               </button>
-              <button
-                type="button"
-                disabled={busy}
-                onClick={() =>
-                  act(
-                    "DELETE",
-                    undefined,
-                    `Delete ${shop.name}? This only works while the shop has no sales.`
-                  )
-                }
-                className="text-xs font-medium text-red-600 hover:text-red-700"
-              >
-                Delete shop
-              </button>
+              {shop.isActive === false ? (
+                <button
+                  type="button"
+                  disabled={busy}
+                  onClick={() =>
+                    act(
+                      "DELETE",
+                      undefined,
+                      `Delete ${shop.name} permanently?\n\nIts sales history and stock records will be erased and its salespeople will be deactivated. This cannot be undone.`
+                    )
+                  }
+                  className="text-xs font-medium text-red-600 hover:text-red-700"
+                >
+                  Delete shop permanently
+                </button>
+              ) : (
+                <span className="text-xs text-slate-400">Deactivate before deleting</span>
+              )}
             </div>
           </form>
         </Modal>

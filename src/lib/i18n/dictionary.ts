@@ -118,6 +118,11 @@ const en = {
   language: "Language",
   english: "English",
   arabic: "العربية",
+
+  // closed shop
+  shopClosedTitle: "Selling is closed",
+  shopClosedBody:
+    "Your shop is not active right now, so sales cannot be recorded. Ask your supervisor or administrator.",
 } as const;
 
 const ar: Record<keyof typeof en, string> = {
@@ -231,6 +236,10 @@ const ar: Record<keyof typeof en, string> = {
   language: "اللغة",
   english: "English",
   arabic: "العربية",
+
+  // closed shop
+  shopClosedTitle: "البيع متوقف",
+  shopClosedBody: "محلك غير مفعّل حالياً، لذلك لا يمكن تسجيل المبيعات. راجعي المشرفة أو الإدارة.",
 };
 
 export type TranslationKey = keyof typeof en;

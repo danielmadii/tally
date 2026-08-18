@@ -12,9 +12,9 @@ const Body = z.object({
 });
 
 /**
- * Delete a shop — only while it has no trading history. Once sales exist the
- * shop is part of the ledger and must be deactivated instead, so past figures
- * stay explainable.
+ * Delete a closed shop and everything recorded against it. Deactivation is the
+ * required first step, so this can never be a one-click accident, and the
+ * shop's salespeople are deactivated with it.
  */
 export async function DELETE(_req: NextRequest, ctx: { params: Promise<{ id: string }> }) {
   return handle(async () => {
@@ -24,41 +24,26 @@ export async function DELETE(_req: NextRequest, ctx: { params: Promise<{ id: str
 
     const { data: shop, error } = await db()
       .from("shop")
-      .select("id, name")
+      .select("id, name, is_active")
       .eq("id", id)
       .maybeSingle();
     if (error) throw error;
     if (!shop) apiError("Shop not found", 404);
-
-    const { count: saleCount, error: saleError } = await db()
-      .from("sale")
-      .select("id", { count: "exact", head: true })
-      .eq("shop_id", id);
-    if (saleError) throw saleError;
-    if (saleCount && saleCount > 0) {
-      apiError(
-        `${shop.name} has ${saleCount} recorded sale${saleCount === 1 ? "" : "s"}. Deactivate it instead so its history stays intact.`,
-        409
-      );
+    if (shop.is_active) {
+      apiError(`Deactivate ${shop.name} first, then delete it.`, 409);
     }
 
-    // No sales: safe to remove the shop and everything that only described it.
-    for (const table of ["stock_movement", "stock_level", "user_shop", "reconciliation", "target"]) {
-      const { error: cleanupError } = await db().from(table).delete().eq("shop_id", id);
-      if (cleanupError) throw cleanupError;
-    }
-    const { error: deleteError } = await db().from("shop").delete().eq("id", id);
-    if (deleteError) throw deleteError;
-
-    await db().from("audit_log").insert({
-      actor_id: session.id,
-      action: "shop_delete",
-      entity: "shop",
-      entity_id: id,
-      before: { name: shop.name },
+    const { data, error: rpcError } = await db().rpc("delete_shop_cascade", {
+      p_shop_id: id,
+      p_actor: session.id,
     });
+    if (rpcError) throw rpcError;
 
-    return { ok: true };
+    return data as {
+      name: string;
+      salesDeleted: number;
+      salespeopleDeactivated: number;
+    };
   });
 }
 
